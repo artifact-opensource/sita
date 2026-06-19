@@ -1,0 +1,21 @@
+# SITA — Railway Configuration
+# Deploy: railway up
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+startCommand = "python3 -m sita run"
+healthcheckPath = "/"
+healthcheckTimeout = 60
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 5
+
+# Environment variables (set in Railway dashboard):
+# SITA_EXCHANGE=binance
+# SITA_TRADING_MODE=paper
+# EXCHANGE_API_KEY= (for live)
+# EXCHANGE_API_SECRET= (for live)
+# DISCORD_TOKEN= (for notifications)
+# DISCORD_CHANNEL_ID= (alerts channel)

@@ -1,0 +1,21 @@
+[project]
+name = "sita"
+version = "1.0.0"
+description = "Self-Improving Trading Agent — Linux native, no MT5, no Wine"
+requires-python = ">=3.11"
+dependencies = [
+    "ccxt>=4.4.0",
+    "pandas>=2.2.0",
+    "numpy>=1.26.0",
+    "pyyaml>=6.0",
+    "httpx>=0.27.0",
+]
+
+[project.scripts]
+sita = "sita.__main__:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.setuptools.packages.find]
+include = ["sita*", "dashboard*"]

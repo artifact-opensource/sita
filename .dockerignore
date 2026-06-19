@@ -1,0 +1,9 @@
+# SITA — Railway Ignory
+__pycache__
+*.pyc
+.env
+node_modules
+.git
+logs/
+*.log
+state/history/
