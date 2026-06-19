@@ -2,7 +2,7 @@
 > Self-Improving Trading Agent <br>
 > **Codename: SITA 🔱** · Linux-native · No MT5 · No Wine · No Windows
 
-SITA is a fully autonomous, self-improving trading agent that runs on Linux and connects directly to cryptocurrency exchanges via ccxt. It implements a complete trading pipeline — signal generation, 9-dimension confluence filtering, adaptive risk management, exchange execution, and reflection-driven strategy evolution.
+SITA is a fully autonomous, self-improving trading agent that runs on Linux and connects directly to cryptocurrency exchanges. It implements a complete trading pipeline — signal generation, 9-dimension confluence filtering, adaptive risk management, exchange execution, and reflection-driven strategy evolution.
 
 Born from the ashes of Cthulu APEX (200K+ lines, 727 files), SITA distills the best signal grading, confluence scoring, and supernatural risk management into a clean, modular, production-ready architecture.
 
