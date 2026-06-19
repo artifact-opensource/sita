@@ -213,11 +213,17 @@ class ExchangeExecutor:
             return OrderResult(success=False, error="Exchange not initialized", timestamp=timestamp)
 
         try:
+            # Determine position side for hedge mode
+            position_side = "LONG" if side == "buy" else "SHORT"
+
+            # Build order params with position side for hedge mode
+            order_params = {"positionSide": position_side}
+
             # Place the main order
             if order_type == "market":
-                order = self.exchange.create_market_order(symbol, side, size)
+                order = self.exchange.create_market_order(symbol, side, size, None, order_params)
             elif order_type == "limit":
-                order = self.exchange.create_limit_order(symbol, side, size, price)
+                order = self.exchange.create_limit_order(symbol, side, size, price, order_params)
             else:
                 return OrderResult(success=False, error=f"Unsupported order type: {order_type}", timestamp=timestamp)
 
@@ -227,10 +233,12 @@ class ExchangeExecutor:
             if stop_loss > 0 or take_profit > 0:
                 try:
                     sl_tp_side = "sell" if side == "buy" else "buy"
+                    sl_tp_position = "LONG" if sl_tp_side == "sell" else "SHORT"
+                    sl_tp_params = {"positionSide": sl_tp_position, "reduceOnly": True}
                     if stop_loss > 0:
-                        self.exchange.create_order(symbol, "stop_market", sl_tp_side, size, None, {"stopPrice": stop_loss})
+                        self.exchange.create_order(symbol, "stop_market", sl_tp_side, size, None, {**sl_tp_params, "stopPrice": stop_loss})
                     if take_profit > 0:
-                        self.exchange.create_order(symbol, "take_profit_market", sl_tp_side, size, None, {"stopPrice": take_profit})
+                        self.exchange.create_order(symbol, "take_profit_market", sl_tp_side, size, None, {**sl_tp_params, "stopPrice": take_profit})
                 except Exception as e:
                     logger.warning(f"SL/TP order failed: {e}")
 
@@ -331,7 +339,11 @@ class ExchangeExecutor:
                 size = float(pos.get("contracts", 0))
                 if size > 0:
                     side = "sell" if pos.get("side") == "long" else "buy"
-                    order = self.exchange.create_market_order(symbol, side, abs(size))
+                    position_side = "LONG" if side == "sell" else "SHORT"
+                    order = self.exchange.create_market_order(
+                        symbol, side, abs(size), None,
+                        {"positionSide": position_side, "reduceOnly": True}
+                    )
                     return OrderResult(
                         success=True,
                         order_id=str(order.get("id", "")),

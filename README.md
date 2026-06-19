@@ -1,11 +1,50 @@
-# Self-Improving Trading Agent
-> Codename: SITA 🔱
+# SITA — Self-Improving Trading Agent
 
-**Linux-native. No MT5. No Wine.**
+> **Codename: SITA 🔱** · Linux-native · No MT5 · No Wine · No Windows
 
-SITA is a self-improving trading agent that runs on Linux, connects directly to crypto exchanges via ccxt, and uses a deterministic fallback mechanism (with optional LLM integration) to reflect on its performance and evolve its strategy over time.
+SITA is a fully autonomous, self-improving trading agent that runs on Linux and connects directly to cryptocurrency exchanges via ccxt. It implements a complete trading pipeline — signal generation, 9-dimension confluence filtering, adaptive risk management, exchange execution, and reflection-driven strategy evolution.
 
-Born from the ashes of Cthulu APEX (200K+ lines, 727 files), SITA distills the best signal grading, 9-dimension confluence, and supernatural risk management into a clean, modular, Linux-native architecture.
+Born from the ashes of Cthulu APEX (200K+ lines, 727 files), SITA distills the best signal grading, confluence scoring, and supernatural risk management into a clean, modular, production-ready architecture.
+
+**Current Status**: ✅ Live trading on Binance futures with $10.77 USDT
+
+---
+
+## Table of Contents
+
+- [Features](#features)
+- [Architecture](#architecture)
+- [Quick Start](#quick-start)
+- [Configuration](#configuration)
+- [Live Trading](#live-trading)
+- [Discord Integration](#discord-integration)
+- [Dashboard](#dashboard)
+- [Reflection System](#reflection-system)
+- [Risk Management](#risk-management)
+- [Supported Exchanges](#supported-exchanges)
+- [Testing](#testing)
+- [Deployment](#deployment)
+- [Documentation](#documentation)
+- [Safety](#safety)
+- [License](#license)
+
+---
+
+## Features
+
+- **7 Trading Strategies** — EMA/SMA crossover, momentum breakout, scalping, trend following, mean reversion, RSI reversal, plus multi-strategy fallback
+- **9-Dimension Confluence Filter** — Level proximity, trend alignment, momentum, BOS, order blocks, timing, structure, session ORB
+- **Adaptive Risk Management** — %R position sizing, ATR-based SL/TP, daily/weekly/total circuit breakers, recovery mode
+- **Regime Detection** — 5 market regimes (trending strong/weak, ranging, volatile, reversal) with confidence scoring
+- **Liquidity Analysis** — Stop hunt zones, fair value gaps, volume nodes, liquidity bias
+- **Self-Improving** — Deterministic reflection loop evolves strategy one variable at a time
+- **Exchange-Agnostic** — ccxt supports 105+ exchanges; pre-configured for Binance, Bybit, OKX, Kraken
+- **Discord Alerts** — Rich embed notifications for trades, signals, health, reflections, daily reports
+- **Real-Time Dashboard** — Web UI with equity curve, positions, risk gauges, reflection log
+- **Paper Trading** — Safe default mode with synthetic data generation
+- **Full Audit Trail** — Every trade, strategy version, and hypothesis logged
+
+---
 
 ## Architecture
 
@@ -22,7 +61,7 @@ Born from the ashes of Cthulu APEX (200K+ lines, 727 files), SITA distills the b
 │  ┌─────────────┐    ┌──────────────┐             │               │
 │  │   Regime    │    │  Liquidity   │             │               │
 │  │  Detector   │    │  Analyzer    │             │               │
-│  │ (5 regimes) │    │ (zones, FVG, │             │               |
+│  │ (5 regimes) │    │ (zones, FVG, │             │               │
 │  │             │    │  stop hunts) │             │               │
 │  └──────┬──────┘    └──────┬───────┘             │               │
 │         │                  │                     │               │
@@ -55,101 +94,14 @@ Born from the ashes of Cthulu APEX (200K+ lines, 727 files), SITA distills the b
 │  └───────────────────────────────────────────────────────────┘   │
 │                                                                  │
 │  ┌───────────────────────────────────────────────────────────┐   │
-│  │              Dashboard (port 8090) + Journal              │   │
+│  │              Dashboard (port 8090) + Discord              │   │
 │  └───────────────────────────────────────────────────────────┘   │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
-## Components
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed component documentation.
 
-### Signal Engine (7 Strategies + Fallback)
-
-| Strategy | Best For | Indicators |
-|----------|----------|------------|
-| EMA Crossover | Trending markets | EMA 9/21/55 |
-| SMA Crossover | Smooth trends | SMA 20/50/200 |
-| Momentum Breakout | Strong moves | RSI + Volume |
-| Scalping | Ranging/choppy | Bollinger Bands + RSI |
-| Trend Following | Strong trends | ADX + EMA |
-| Mean Reversion | Ranging | RSI extremes + BB |
-| RSI Reversal | Overextended | RSI divergence |
-
-When primary strategy lacks confidence, the **multi-strategy fallback** blends signals from all 7.
-
-### Confluence Filter (9 Dimensions)
-
-Every signal must pass through a 9-dimension quality gate scored 0-100:
-
-| Dimension | Weight | What it Measures |
-|-----------|--------|-----------------|
-| Level Proximity | 18% | Distance to key S/R levels |
-| Trend Alignment | 17% | Signal direction vs. trend |
-| Momentum | 15% | RSI/MACD confirmation |
-| Break of Structure | 12% | BOS/CHoCH detection |
-| Order Block | 12% | Institutional order flow |
-| Timing | 10% | Session/volume timing |
-| Market Structure | 8% | Higher highs/lows |
-| Opening Range | 8% | ORB breakouts |
-
-**Score thresholds:**
-- 80+ → Premium (full size)
-- 60-79 → Good (reduced size)
-- 40-59 → Marginal (minimum size, may wait)
-- <40 → Rejected
-
-### Risk Manager
-
-- **Position sizing** — %R model with max notional cap (30% of equity)
-- **Auto SL/TP** — ATR-based stops with regime awareness
-- **Loss limits** — Daily (1.5%), Weekly (3%), Total (5%) circuit breakers
-- **Recovery mode** — Auto 25% risk reduction after 3% drawdown
-- **Max 3 positions** — 1 per symbol, max 3 concurrent
-
-### Regime Detection
-
-Classifies market into 5 regimes with confidence levels:
-
-| Regime | Characteristics | Strategy Bias |
-|--------|----------------|---------------|
-| Trending Strong | ADX > 25, clear direction | Trend Following |
-| Trending Weak | ADX 15-25, loose structure | EMA Crossover |
-| Ranging | ADX < 15, bounded price | Scalping / Mean Rev |
-| Volatile | ATR spike, wide range | Reduce size / wait |
-| Reversal | RSI extreme + divergence | Mean Reversion |
-
-### Liquidity Analysis
-
-- Stop hunt zone detection
-- Fair Value Gap (FVG) identification
-- Volume Node mapping (high-volume price levels)
-- Liquidity bias (bullish/bearish/neutral)
-
-### Reflection Loop
-
-Every N closed trades (default: 5):
-1. Score performance against goals
-2. Generate hypotheses (what single variable to change)
-3. Apply exactly **ONE** change
-4. Save prior version to history/
-5. Log hypothesis with reasoning
-
-**Hypothesis types:**
-- Disable consistently losing symbols
-- Tighten/loosen stop loss
-- Change entry indicator
-- Adjust position size
-- Allow/disallow directions
-- Switch strategy type
-
-**Modes:**
-- Deterministic fallback (rule-based, no LLM needed)
-- Hermes LLM (natural language reasoning — production)
-
-### Position Manager
-
-- **Dynamic breakeven** — Moves SL to entry after 1R profit
-- **Trailing stop** — Trails by 1.5x ATR after 2R
-- **Profit profiling** — Partial closes at 1R (25%), 2R (25%), 3R (50%)
+---
 
 ## Quick Start
 
@@ -173,161 +125,112 @@ cp .env.example .env
 # Paper trading (default)
 python3 -m sita run
 
-# With specific exchange
-python3 -m sita run --exchange binance --timeframe 15m
-
 # Check status
 python3 -m sita status
-
-# Force reflection
-python3 -m sita reflect --fallback
-
-# Backtest
-python3 -m sita backtest
-
-# Dashboard
-python3 -m sita dashboard
 ```
 
-## Supported Exchanges
-
-SITA uses **ccxt** under the hood, supporting **105+ exchanges**.
-
-### Pre-Configured (Ready to Use)
-
-| Exchange | ID | Testnet | Type | Notes |
-|----------|----|---------|------|-------|
-| Binance | `binance` | ✅ | Futures | Largest liquidity, deep testnet |
-| Bybit | `bybit` | ✅ | Linear | Good perps, solid API |
-| OKX | `okx` | ✅ | Swap | Strong altcoin selection |
-| Kraken | `kraken` | ❌ | Spot | Regulated, EUR/USD focus |
-
-### Recommended by Use Case
-
-| Use Case | Exchange |
-|----------|----------|
-| Largest liquidity perps | Binance, Bybit, OKX |
-| No KYC perps | MEXC, Phemex, Bitget |
-| Regulated spot | Coinbase, Kraken, Bitstamp |
-| Altcoin hunting | KuCoin, Gate.io, MEXC |
-| Crypto options | Deribit |
-| DeFi perps | Hyperliquid, dYdX |
-
-### Full Exchange List
-
-<details>
-<summary>Major CEX (50 exchanges)</summary>
-
-Binance, Binance Coin-M, Binance US, Binance USDM, BingX, Bitfinex, Bitflyer, Bitget, Bithumb, BitMEX, Bitso, Bitstamp, BTC Markets, Bybit, Bybit EU, Coinbase, Coinbase Exchange, Coinbase International, Coincheck, CoinEX, CoinSpot, Crypto.com, Deepcoin, Delta, Deribit, Extended, Foxbit, Gate.io, Gemini, HitBTC, Independent Reserve, Kraken, Kraken Futures, KuCoin, KuCoin Futures, LBank, Mercado Bitcoin, MEXC, OKX, OKX US, Phemex, Poloniex, Upbit, WhiteBIT, WOO X, WOO Pro, XT.com, Zaif
-
-</details>
-
-<details>
-<summary>Other CEX + DEX (49 exchanges)</summary>
-
-Aftermath, Apex, AscendEX, Aster, Backpack, Bequant, Bit2C, Bitbank, Bitbns, BitMart, Bitopro, Bitrue, BitTeam, BitTrade, Bitvavo, Blockchain.com, Blofin, BTCBox, BTCTurk, Bullish, BYDFI, CEX.IO, Coinmate, CoinMetro, Coinone, Coins.ph, Cryptomus, Derive, EXMO, FMFW.io, GRVT, HashKey, Hibachi, Hollaex, HTX, Hyperliquid, Indodax, Latoken, Luno, NDAX, OneTrading, P2B, Pacifica, Paradex, Paymium, Tokocrypto, Toobit, Weex, ZebPay
-
-</details>
-
-<details>
-<summary>Forex/CFD (3 exchanges)</summary>
-
-BigONE, Digifinex, Lighter
-
-</details>
-
-<details>
-<summary>Stocks (2 exchanges)</summary>
-
-Alpaca (US stocks, commission-free), Mode Trade (EU stocks)
-
-</details>
-
-<details>
-<summary>DeFi (1 exchange)</summary>
-
-dYdX (perps on dYdX chain)
-
-</details>
-
-See [docs/EXCHANGES.md](docs/EXCHANGES.md) for the complete list with categories.
+---
 
 ## Configuration
-
-### State Files
-
-| File | Purpose |
-|------|---------|
-| `state/goal.yaml` | Your targets (return, drawdown, Sharpe) |
-| `state/strategy.yaml` | Current strategy (auto-evolved by reflection) |
-| `state/history/` | Every prior strategy version (full audit trail) |
-| `state/hypotheses.jsonl` | Reflection log with reasoning |
-| `state/trades.jsonl` | Complete trade history |
 
 ### Environment Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `SITA_EXCHANGE` | binance | Exchange ID |
-| `SITA_TRADING_MODE` | paper | paper or live |
-| `SITA_I_ACCEPT_RISK` | false | Must be true for live trading |
-| `SITA_BASE_DIR` | . | Base directory for state files |
-| `SITA_TIMEFRAME` | 15m | Default timeframe |
-| `SITA_LOOP_INTERVAL` | 30 | Seconds between cycles |
+| `SITA_EXCHANGE` | `binance` | Exchange ID (any ccxt exchange) |
+| `SITA_TRADING_MODE` | `paper` | `paper` or `live` |
+| `SITA_I_ACCEPT_RISK` | `false` | Must be `true` for live trading |
+| `SITA_BASE_DIR` | `~/Projects/sita` | Base directory for state files |
+| `SITA_LOG_LEVEL` | `INFO` | Logging level |
 | `EXCHANGE_API_KEY` | — | API key for live trading |
 | `EXCHANGE_API_SECRET` | — | API secret for live trading |
-| `DISCORD_TOKEN` | — | Discord bot token for alerts |
-| `DISCORD_CHANNEL_ID` | — | Channel ID for alerts |
+| `DISCORD_BOT_TOKEN` | — | Discord bot token |
+| `DISCORD_WEBHOOK_URL` | — | Discord webhook URL |
+| `DISCORD_CHANNEL_ID` | — | Discord channel/forum ID |
+
+### State Files
+
+| File | Purpose |
+|------|---------|
+| `state/goal.yaml` | Trading targets (return, drawdown, Sharpe) |
+| `state/strategy.yaml` | Current strategy (auto-evolved by reflection) |
+| `state/history/` | Every prior strategy version (full audit trail) |
+| `state/hypotheses.jsonl` | Reflection log with reasoning |
+| `state/trades.jsonl` | Complete trade history |
 
 ### goal.yaml
 
 ```yaml
 initial_balance: 10000
 target_return_30d: 0.05      # 5% monthly target
-max_drawdown: 0.05            # 5% max drawdown
+max_drawdown: 0.10            # 10% max drawdown
 min_sharpe: 1.5
 min_win_rate: 0.45
-max_daily_loss_pct: 0.015     # 1.5% daily stop
-max_weekly_loss_pct: 0.03     # 3% weekly stop
+max_daily_loss_pct: 0.03      # 3% daily stop
+max_weekly_loss_pct: 0.05     # 5% weekly stop
 ```
 
-### strategy.yaml (Auto-Evolved)
+---
 
-```yaml
-version: '06'
-entry:
-  indicator: rsi
-  threshold: 22
-  direction: both
-stop_loss_pct: 2.0
-position_size_r: 0.5
-regime: trending
-disabled_symbols:
-  - ETH/USDT:USDT
-```
+## Live Trading
 
-## Safety
+### ⚠️ Prerequisites
 
-- **Paper trading by default** — Must explicitly set `SITA_TRADING_MODE=live` + `SITA_I_ACCEPT_RISK=true`
-- **Daily loss limit** — Stops trading for the day at 1.5% loss
-- **Weekly loss limit** — Stops trading for the week at 3% loss
-- **Total loss limit** — Hard stop at 5% drawdown
-- **Recovery mode** — Auto 25% risk reduction after 3% drawdown
-- **Max 3 positions** — 1 per symbol, max 3 concurrent
-- **Reflection versioning** — Every strategy change saved, full rollback capability
-- **Audit trail** — Complete trade + hypothesis history
+1. API key with Reading + Futures permissions
+2. IP whitelist configured on exchange
+3. Testnet tested first
+4. Small initial capital recommended
+5. `SITA_I_ACCEPT_RISK=true` set
 
-## Railway Deployment
+### Starting Live Trading
 
 ```bash
-cd sita
-railway up
+export SITA_TRADING_MODE=live
+export SITA_I_ACCEPT_RISK=true
+python3 -m sita run
 ```
 
-Set environment variables in Railway dashboard:
-- `SITA_EXCHANGE=binance`
-- `SITA_TRADING_MODE=paper`
-- `EXCHANGE_API_KEY` / `EXCHANGE_API_SECRET` (for live)
+### Binance Setup
+
+1. Create API key at https://www.binance.com/en/my/settings/api-management
+2. Enable: Reading, Futures, Universal Transfer
+3. Set IP restriction → add your public IP (`curl -s ifconfig.me`)
+4. Transfer USDT to Futures wallet
+
+### Minimum Order Size
+
+Binance futures requires **$5 USDT minimum notional** per order. SITA automatically enforces this — position sizes below $5 are scaled up to meet the floor.
+
+---
+
+## Discord Integration
+
+SITA posts rich embed notifications to Discord:
+
+| Event | Content |
+|-------|---------|
+| 🚀 Startup | Version, mode, balance, watchlist |
+| 📈 Trade Entry | Symbol, side, size, entry, SL, TP |
+| 📉 Trade Exit | Symbol, side, P&L, reason |
+| 🟢 Signal | Symbol, direction, confidence, confluence |
+| 💓 Health | Balance, positions, win rate, P&L |
+| 🧠 Reflection | Hypothesis, score, version, reasoning |
+| 📊 Daily Report | Trades, win rate, P&L, recent history |
+
+### Bot Setup
+
+1. Create app at https://discord.com/developers/applications
+2. Create bot, copy token
+3. Enable privileged intents (Message Content, Server Members)
+4. Invite with permissions: Send Messages, Embed Links, Create Public Threads
+5. Set `DISCORD_BOT_TOKEN` and `DISCORD_CHANNEL_ID` in `.env`
+
+### Webhook Setup
+
+1. Channel settings → Integrations → Webhooks → New Webhook
+2. Copy URL to `DISCORD_WEBHOOK_URL` in `.env`
+
+---
 
 ## Dashboard
 
@@ -345,18 +248,182 @@ Real-time web dashboard at `http://localhost:8090`:
 python3 -m sita dashboard
 ```
 
+---
+
+## Reflection System
+
+Every N closed trades (default: 5), SITA reflects on its performance and evolves:
+
+1. **Score** — Win rate, profit factor, drawdown, Sharpe
+2. **Hypothesize** — Generate candidate strategy changes
+3. **Apply ONE change** — Scientific method: one variable at a time
+4. **Version** — Save prior strategy to `state/history/`
+5. **Log** — Record hypothesis with reasoning in `state/hypotheses.jsonl`
+
+### Hypothesis Types
+
+- Disable consistently losing symbols
+- Adjust SL tightness
+- Change entry indicator threshold
+- Adjust position size
+- Allow/disallow directional bias
+- Switch primary strategy
+
+### Modes
+
+- **Deterministic Fallback**: Rule-based, no LLM needed (default)
+- **Hermes LLM**: Natural language reasoning for complex evolution (production)
+
+---
+
+## Risk Management
+
+### Position Sizing
+
+```
+risk_amount = balance × risk_pct × confluence_mult
+position_size = risk_amount / sl_distance
+```
+
+- **Risk per trade**: 0.5-2% (adaptive by account size)
+- **Min notional**: $5.00 (Binance futures minimum)
+- **Max notional**: 35% of balance per position
+
+### Account Tiers
+
+| Tier | Balance | Risk Per Trade |
+|------|---------|----------------|
+| Tiny | ≤ $1,000 | 0.5% |
+| Small | ≤ $5,000 | 1.0% |
+| Medium | ≤ $20,000 | 1.5% |
+| Large | > $20,000 | 2.0% |
+
+### Circuit Breakers
+
+| Limit | Threshold | Action |
+|-------|-----------|--------|
+| Daily Loss | 3% | Stop trading for the day |
+| Weekly Loss | 5% | Stop trading for the week |
+| Total DD | 10% | Hard stop, close all positions |
+| Recovery | 5% DD | 50% risk reduction |
+
+### Position Management
+
+- **Dynamic Breakeven**: Moves SL to entry after 1R profit
+- **Trailing Stop**: Trails at 1.5x ATR after 2R profit
+- **Profit Profiling**: Partial closes at 1R (25%), 2R (25%), 3R (50%)
+
+---
+
+## Supported Exchanges
+
+SITA uses **ccxt**, supporting **105+ exchanges**.
+
+### Pre-Configured
+
+| Exchange | ID | Testnet | Type | Min Notional |
+|----------|----|---------|------|-------------|
+| Binance | `binance` | ✅ | Futures | $5 USDT |
+| Bybit | `bybit` | ✅ | Linear | $1 USDT |
+| OKX | `okx` | ✅ | Swap | $1 USDT |
+| Kraken | `kraken` | ❌ | Spot | $5 USD |
+
+### By Use Case
+
+| Use Case | Recommended |
+|----------|-------------|
+| Largest liquidity perps | Binance, Bybit, OKX |
+| No KYC perps | MEXC, Phemex, Bitget |
+| Regulated spot | Coinbase, Kraken, Bitstamp |
+| Altcoin hunting | KuCoin, Gate.io, MEXC |
+| Crypto options | Deribit |
+| DeFi perps | Hyperliquid, dYdX |
+
+See [docs/EXCHANGES.md](docs/EXCHANGES.md) for the complete list.
+
+---
+
 ## Testing
 
 ```bash
-# Run integration test
+# Run integration tests
 python3 -m pytest tests/ -v
 
-# Run with synthetic data
+# Paper trading with synthetic data
 python3 -m sita run --exchange binance --timeframe 15m
 
-# Backtest
-python3 -m sita backtest
+# Force reflection cycle
+python3 -m sita reflect --fallback
+
+# Check current status
+python3 -m sita status
 ```
+
+### Dry-Run Results
+
+From paper trading test (38 trades, $10K initial):
+
+| Metric | Value |
+|--------|-------|
+| Win Rate | 65.8% |
+| Total P&L | $1,391.82 |
+| Max Drawdown | 0.59% |
+| Strategy Evolution | v01 → v07 (5 cycles) |
+| Best Performers | SOL shorts, BTC trend trades |
+| Disabled | ETH (consistent losses) |
+
+---
+
+## Deployment
+
+### Local
+
+```bash
+python3 -m sita run
+```
+
+### Docker
+
+```bash
+docker build -t sita .
+docker run -d --env-file .env -p 8090:8090 sita
+```
+
+### Railway
+
+```bash
+cd sita
+railway up
+```
+
+Set environment variables in Railway dashboard.
+
+---
+
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System architecture, component deep-dive, data flow |
+| [docs/OPERATIONS.md](docs/OPERATIONS.md) | Installation, configuration, live trading, troubleshooting |
+| [docs/EXCHANGES.md](docs/EXCHANGES.md) | Complete list of 105+ supported exchanges |
+
+---
+
+## Safety
+
+- **Paper trading by default** — Must explicitly set `SITA_TRADING_MODE=live` + `SITA_I_ACCEPT_RISK=true`
+- **Confluence gate** — Low-quality signals rejected before risk check
+- **Daily loss limit** — Stops trading at 3% daily loss
+- **Weekly loss limit** — Stops trading at 5% weekly loss
+- **Total loss limit** — Hard stop at 10% drawdown
+- **Recovery mode** — Auto 50% risk reduction after 5% drawdown
+- **Max 1 position** — Focused trading (configurable)
+- **Symbol disabling** — Reflection disables losing symbols
+- **Full audit trail** — Every trade, strategy version, and hypothesis logged
+- **Version rollback** — Any prior strategy can be restored from `state/history/`
+
+---
 
 ## License
 

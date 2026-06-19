@@ -310,8 +310,32 @@ class SITA:
                 order_id=order.order_id,
             )
             logger.info(f"{symbol}: Order placed — {order.order_id}")
+
+            # Discord trade alert
+            if self.discord:
+                try:
+                    self.discord.post_trade(
+                        symbol=symbol,
+                        side=signal.direction.value,
+                        size=risk_decision.position_size,
+                        entry=current_price,
+                        sl=sl_price,
+                        tp=tp_price,
+                    )
+                except Exception as e:
+                    logger.warning(f"Discord trade post failed: {e}")
         else:
             logger.error(f"{symbol}: Order failed — {order.error}")
+            if self.discord:
+                try:
+                    self.discord.post_alert(
+                        f"⚠️ Order Failed: {symbol}",
+                        f"Error: {order.error}",
+                        color="red",
+                        fields={"Side": signal.direction.value, "Size": str(risk_decision.position_size)},
+                    )
+                except Exception as e:
+                    logger.warning(f"Discord error post failed: {e}")
 
     def _manage_positions(self):
         """Update and manage open positions."""
