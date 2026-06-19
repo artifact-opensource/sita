@@ -338,6 +338,14 @@ def main():
     reflect_parser.add_argument("--fallback", action="store_true", help="Use deterministic fallback")
     reflect_parser.add_argument("--hermes", action="store_true", help="Use Hermes LLM")
 
+    # Dashboard
+    dashboard_parser = subparsers.add_parser("dashboard", help="Start the web dashboard")
+    dashboard_parser.add_argument("--host", default="0.0.0.0", help="Bind host")
+    dashboard_parser.add_argument("--port", type=int, default=8090, help="Bind port")
+
+    # Setup
+    subparsers.add_parser("setup", help="Interactive setup wizard")
+
     # Status
     subparsers.add_parser("status", help="Show current status")
 
@@ -353,6 +361,12 @@ def main():
 
     if args.command == "run":
         sita.run()
+    elif args.command == "dashboard":
+        from dashboard.server import run_dashboard
+        run_dashboard(host=args.host, port=args.port)
+    elif args.command == "setup":
+        from .setup import run_setup
+        run_setup()
     elif args.command == "reflect":
         if args.hermes:
             result = sita.reflection.reflect_hermes()
