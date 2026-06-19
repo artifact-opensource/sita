@@ -39,3 +39,4 @@ Thumbs.db
 # Railway
 .railway/
 config/master.env
+config/master.txt

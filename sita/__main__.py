@@ -10,13 +10,30 @@ Usage:
     python -m sita backtest             # Run backtest
 """
 
+import os
+from pathlib import Path
+
+# Load .env BEFORE any config imports (config reads os.getenv at module level)
+_env_path = Path("/home/adam/Projects/sita/.env")
+if _env_path.exists():
+    with open(_env_path) as _f:
+        for _line in _f:
+            _line = _line.strip()
+            if _line and not _line.startswith('#') and '=' in _line:
+                _k, _v = _line.split('=', 1)
+                _v = _v.strip().strip("'\"")
+                os.environ.setdefault(_k.strip(), _v)
+    print(f"[SITA DOTENV] Loaded .env from {_env_path}")
+    print(f"[SITA DOTENV] SITA_TRADING_MODE={os.environ.get('SITA_TRADING_MODE')}")
+else:
+    print(f"[SITA DOTENV] WARNING: .env not found at {_env_path}")
+
 import sys
 import time
 import signal
 import logging
 import argparse
 from datetime import datetime, timezone
-from pathlib import Path
 
 from .config import (
     LOG_FILE, LOG_FORMAT, LOG_LEVEL, STATE_DIR, TRADING_MODE,
@@ -368,8 +385,7 @@ class SITA:
 def load_dotenv():
     """Load .env file from project root into os.environ."""
     try:
-        from pathlib import Path
-        env_path = Path(__file__).resolve().parent.parent / ".env"
+        env_path = Path("/home/adam/Projects/sita/.env")
         if env_path.exists():
             with open(env_path) as f:
                 for line in f:

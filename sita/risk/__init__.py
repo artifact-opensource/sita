@@ -43,6 +43,7 @@ class RiskLimits:
     recovery_mode_threshold: float = 0.08
     recovery_mode_risk_mult: float = 0.50
     min_lot: float = 0.001
+    min_notional: float = 5.0        # Minimum order notional in USDT (Binance futures = 5)
     balance_breakpoints: List[float] = field(default_factory=lambda: BALANCE_BREAKPOINTS)
     risk_by_category: Dict[str, float] = field(default_factory=lambda: RISK_BY_CATEGORY)
 
@@ -184,10 +185,12 @@ class UnifiedRiskManager:
     ) -> Tuple[float, float]:
         """
         Calculate position size based on risk per trade and SL distance.
-        Caps notional value at max_position_notional_pct of balance.
+        Enforces Binance minimum notional (min_notional from config, default $5).
+        When account is small, scales position to meet min notional floor.
 
         Returns: (position_size, risk_amount)
         """
+        min_notional = self.config.get("min_notional", 5.0) if self.config else 5.0
         risk_pct = self.get_risk_percentage(balance)
         risk_amount = balance * risk_pct * confluence_mult
 
@@ -198,18 +201,23 @@ class UnifiedRiskManager:
         # Base position size from risk
         position_size = risk_amount / sl_distance
 
-        # Cap notional value: max 30% of balance per position
-        max_notional = balance * 0.30
-        max_size_by_notional = max_notional / entry_price if entry_price > 0 else position_size
-        position_size = min(position_size, max_size_by_notional)
+        # Enforce minimum notional (Binance futures requires >= $5)
+        min_size_for_notional = min_notional / entry_price if entry_price > 0 else position_size
+        if position_size < min_size_for_notional:
+            position_size = min_size_for_notional
+            # Recalculate risk for this larger size
+            risk_amount = position_size * sl_distance
 
-        # Also cap at 2x leverage equivalent (notional <= 2x balance)
-        max_size_by_leverage = (balance * 2.0) / entry_price if entry_price > 0 else position_size
-        position_size = min(position_size, max_size_by_leverage)
+        # Cap notional value: max 35% of balance per position
+        max_notional = balance * 0.35
+        max_size_by_notional = max_notional / entry_price if entry_price > 0 else position_size
+        if position_size > max_size_by_notional:
+            position_size = max_size_by_notional
+            risk_amount = position_size * sl_distance
 
         position_size = max(position_size, self.limits.min_lot)
 
-        # Recalculate actual risk with capped size
+        # Recalculate actual risk with final size
         actual_risk = position_size * sl_distance
 
         return round(position_size, 6), round(actual_risk, 2)

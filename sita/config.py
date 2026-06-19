@@ -124,6 +124,7 @@ DEFAULT_RISK_LIMITS = {
     "recovery_mode_threshold": 0.05,    # Enter recovery at 5% DD
     "recovery_mode_risk_mult": 0.5,     # 50% risk in recovery
     "min_lot": 0.001,
+    "min_notional": 5.0,                # Binance futures minimum order notional (USDT)
 }
 
 # ─── Balance-Based Risk Categories ──────────────────────────────────────────

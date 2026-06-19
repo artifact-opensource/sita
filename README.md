@@ -1,7 +1,7 @@
 # Self-Improving Trading Agent
 > Codename: SITA 🔱
 
-**Linux-native. No MT5. No Wine. No Banks needed.**
+**Linux-native. No MT5. No Wine.**
 
 SITA is a self-improving trading agent that runs on Linux, connects directly to crypto exchanges via ccxt, and uses a deterministic fallback mechanism (with optional LLM integration) to reflect on its performance and evolve its strategy over time.
 
@@ -11,51 +11,51 @@ Born from the ashes of Cthulu APEX (200K+ lines, 727 files), SITA distills the b
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
-│                        SITA Pipeline                            │
+│                        SITA Pipeline                             │
 │                                                                  │
-│  ┌─────────────┐    ┌──────────────┐    ┌───────────────────┐  │
-│  │   Signal     │    │  Confluence  │    │   Risk Manager    │  │
-│  │  (7 strat +  │───▶│  (9-dim gate │───▶│  (sizing, SL/TP,  │  │
-│  │   fallback)  │    │   0-100)     │    │   limits, recover)│  │
-│  └─────────────┘    └──────────────┘    └────────┬──────────┘  │
-│                                                   │              │
-│  ┌─────────────┐    ┌──────────────┐              │              │
-│  │   Regime     │    │  Liquidity   │              │              │
-│  │  Detector    │    │  Analyzer    │              │              │
-│  │ (5 regimes)  │    │ (zones, FVG, │              │              │
-│  │              │    │  stop hunts) │              │              │
-│  └──────┬──────┘    └──────┬───────┘              │              │
-│         │                  │                       │              │
-│         └────────┬─────────┘                       │              │
-│                  │                                  │              │
-│                  ▼                                  ▼              │
+│  ┌─────────────┐    ┌──────────────┐    ┌───────────────────┐    │
+│  │   Signal    │    │  Confluence  │    │   Risk Manager    │    │
+│  │  (7 strat + │───▶│  (9-dim gate │───▶│  (sizing, SL/TP,  │    │
+│  │   fallback) │    │   0-100)     │    │   limits, recover)│    │
+│  └─────────────┘    └──────────────┘    └────────┬──────────┘    │
+│                                                  │               │
+│  ┌─────────────┐    ┌──────────────┐             │               │
+│  │   Regime    │    │  Liquidity   │             │               │
+│  │  Detector   │    │  Analyzer    │             │               │
+│  │ (5 regimes) │    │ (zones, FVG, │             │               |
+│  │             │    │  stop hunts) │             │               │
+│  └──────┬──────┘    └──────┬───────┘             │               │
+│         │                  │                     │               │
+│         └────────┬─────────┘                     │               │
+│                  │                               │               │
+│                  ▼                               ▼               │
 │  ┌───────────────────────────────────────────────────────────┐   │
-│  │                    Engine (main loop)                      │   │
+│  │                    Engine (main loop)                     │   │
 │  │  Fetch → Regime → Liquidity → Signal → Confluence → Risk  │   │
 │  └───────────────────────────┬───────────────────────────────┘   │
-│                              │                                    │
-│                              ▼                                    │
+│                              │                                   │
+│                              ▼                                   │
 │  ┌───────────────────────────────────────────────────────────┐   │
-│  │                     Execution                               │   │
+│  │                     Execution                             │   │
 │  │         ccxt → Binance/Bybit/OKX/Kraken/105+              │   │
-│  │              paper trading / live trading                   │   │
+│  │              paper trading / live trading                 │   │
 │  └───────────────────────────┬───────────────────────────────┘   │
-│                              │                                    │
-│                              ▼                                    │
+│                              │                                   │
+│                              ▼                                   │
 │  ┌───────────────────────────────────────────────────────────┐   │
-│  │                   Position Manager                          │   │
-│  │        dynamic BE, trailing stop, profit profiling         │   │
+│  │                   Position Manager                        │   │
+│  │        dynamic BE, trailing stop, profit profiling        │   │
 │  └───────────────────────────┬───────────────────────────────┘   │
-│                              │                                    │
-│                              ▼                                    │
+│                              │                                   │
+│                              ▼                                   │
 │  ┌───────────────────────────────────────────────────────────┐   │
-│  │                   Reflection Loop                           │   │
-│  │   every N trades → score → hypothesize → edit strategy     │   │
-│  │           (deterministic fallback / Hermes LLM)             │   │
+│  │                   Reflection Loop                         │   │
+│  │   every N trades → score → hypothesize → edit strategy    │   │
+│  │           (deterministic fallback / Hermes LLM)           │   │
 │  └───────────────────────────────────────────────────────────┘   │
 │                                                                  │
 │  ┌───────────────────────────────────────────────────────────┐   │
-│  │              Dashboard (port 8090) + Journal                │   │
+│  │              Dashboard (port 8090) + Journal              │   │
 │  └───────────────────────────────────────────────────────────┘   │
 └──────────────────────────────────────────────────────────────────┘
 ```
