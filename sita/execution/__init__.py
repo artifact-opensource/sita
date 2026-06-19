@@ -67,8 +67,21 @@ class ExchangeExecutor:
 
             # Add API keys for live trading
             if self.mode == "live":
-                api_key = self.config.get("api_key") or self.config.get("EXCHANGE_API_KEY")
-                api_secret = self.config.get("api_secret") or self.config.get("EXCHANGE_API_SECRET")
+                import os
+                api_key = (
+                    self.config.get("api_key")
+                    or self.config.get("EXCHANGE_API_KEY")
+                    or self.config.get("BINANCE_API_KEY")
+                    or os.getenv("EXCHANGE_API_KEY")
+                    or os.getenv("BINANCE_API_KEY")
+                )
+                api_secret = (
+                    self.config.get("api_secret")
+                    or self.config.get("EXCHANGE_API_SECRET")
+                    or self.config.get("BINANCE_SECRET")
+                    or os.getenv("EXCHANGE_API_SECRET")
+                    or os.getenv("BINANCE_SECRET")
+                )
                 if api_key and api_secret:
                     exchange_config["apiKey"] = api_key
                     exchange_config["secret"] = api_secret

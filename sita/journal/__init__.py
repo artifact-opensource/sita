@@ -194,20 +194,49 @@ class DiscordNotifier:
         self._send_to_channel("reports", embed)
 
     def _send_to_channel(self, channel_key: str, embed: Dict):
-        """Send an embed to a Discord channel."""
-        channel_id = self.channels.get(channel_key)
-        if not channel_id:
-            return
+        """Send an embed to a Discord channel via webhook or bot API."""
+        import json, urllib.request, urllib.error
 
-        # Use Hermes' discord tool if available, otherwise log
-        try:
-            # Try to use the discord send_message tool
-            import json
-            logger.info(f"Discord [{channel_key}]: {embed['title']}")
-            # Actual Discord send would go through Hermes' gateway
-            # For now, log it — the gateway handles actual delivery
-        except Exception as e:
-            logger.error(f"Discord send failed: {e}")
+        channel_id = self.channels.get(channel_key)
+        webhook_url = self.channels.get("webhook_url")
+
+        # Prefer webhook for simple posting
+        if webhook_url:
+            try:
+                payload = json.dumps({"embeds": [embed]}).encode()
+                req = urllib.request.Request(
+                    webhook_url,
+                    data=payload,
+                    headers={"Content-Type": "application/json"},
+                    method="POST",
+                )
+                resp = urllib.request.urlopen(req, timeout=10)
+                logger.info(f"Discord [{channel_key}] webhook sent: {embed.get('title')} (status {resp.status})")
+                return
+            except Exception as e:
+                logger.warning(f"Discord webhook failed: {e}")
+
+        # Fallback: try bot API with channel ID
+        if channel_id and self.token:
+            try:
+                url = f"https://discord.com/api/v10/channels/{channel_id}/messages"
+                payload = json.dumps({"embeds": [embed]}).encode()
+                req = urllib.request.Request(
+                    url,
+                    data=payload,
+                    headers={
+                        "Authorization": f"Bot {self.token}",
+                        "Content-Type": "application/json",
+                    },
+                    method="POST",
+                )
+                resp = urllib.request.urlopen(req, timeout=10)
+                logger.info(f"Discord [{channel_key}] bot sent: {embed.get('title')} (status {resp.status})")
+                return
+            except Exception as e:
+                logger.warning(f"Discord bot API failed: {e}")
+
+        logger.info(f"Discord [{channel_key}] (no delivery): {embed.get('title')}")
 
     @staticmethod
     def _color(name: str) -> int:

@@ -115,14 +115,14 @@ POSITION_MULTIPLIERS = {
 # ─── Risk Defaults ─────────────────────────────────────────────────────────
 
 DEFAULT_RISK_LIMITS = {
-    "max_daily_loss_pct": 0.015,       # 1.5% daily loss limit (tight)
-    "max_weekly_loss_pct": 0.03,        # 3% weekly loss limit (tight)
-    "max_total_loss_pct": 0.05,         # 5% total drawdown limit (absolute max)
-    "max_risk_per_trade_pct": 0.005,    # 0.5% risk per trade (conservative)
-    "max_positions": 3,                 # Max 3 concurrent positions (focused)
+    "max_daily_loss_pct": 0.03,         # 3% daily loss limit ($0.30 on $10)
+    "max_weekly_loss_pct": 0.05,        # 5% weekly loss limit ($0.50 on $10)
+    "max_total_loss_pct": 0.10,         # 10% total DD limit ($1.00 kill switch)
+    "max_risk_per_trade_pct": 0.01,     # 1% risk per trade ($0.10 on $10)
+    "max_positions": 1,                 # Max 1 concurrent position (focused)
     "max_positions_per_symbol": 1,      # Max 1 per symbol (no doubling up)
-    "recovery_mode_threshold": 0.03,    # Enter recovery at 3% DD (early)
-    "recovery_mode_risk_mult": 0.25,    # 25% risk in recovery (barely trading)
+    "recovery_mode_threshold": 0.05,    # Enter recovery at 5% DD
+    "recovery_mode_risk_mult": 0.5,     # 50% risk in recovery
     "min_lot": 0.001,
 }
 

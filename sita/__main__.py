@@ -77,6 +77,30 @@ class SITA:
         self.regime_detector = RegimeDetector(self.config.get("regime", {}))
         self.liquidity_analyzer = LiquidityAnalyzer(self.config.get("liquidity", {}))
 
+        # Discord notifier
+        self.discord = None
+        try:
+            from .journal import DiscordNotifier
+            import os as _os
+            _token = _os.environ.get("DISCORD_BOT_TOKEN", "")
+            _webhook = _os.environ.get("DISCORD_WEBHOOK_URL", "")
+            _channel = _os.environ.get("DISCORD_CHANNEL_ID", "")
+            if _token or _webhook:
+                self.discord = DiscordNotifier(
+                    token=_token,
+                    channels={
+                        "alerts": int(_channel) if _channel.isdigit() else None,
+                        "signals": int(_channel) if _channel.isdigit() else None,
+                        "health": int(_channel) if _channel.isdigit() else None,
+                        "journal": int(_channel) if _channel.isdigit() else None,
+                        "reports": int(_channel) if _channel.isdigit() else None,
+                        "webhook_url": _webhook,
+                    },
+                )
+                logger.info("Discord notifier enabled")
+        except Exception as e:
+            logger.warning(f"Discord notifier init failed: {e}")
+
         # Initialize balance
         balance = self.executor.get_balance()
         self.risk_manager.initialize_balances(balance)
@@ -88,6 +112,24 @@ class SITA:
         self.loop_interval = self.config.get("loop_interval", 60)  # seconds
 
         logger.info(f"SITA initialized. Mode: {TRADING_MODE}. Watchlist: {self.watchlist}")
+
+        # Discord startup notification
+        if self.discord:
+            try:
+                from .config import DEFAULT_EXCHANGE
+                self.discord.post_alert(
+                    "🚀 SITA Online",
+                    f"v{VERSION} '{CODENAME}' started in **{TRADING_MODE}** mode",
+                    color="green",
+                    fields={
+                        "Exchange": DEFAULT_EXCHANGE,
+                        "Balance": f"${balance:.2f} USDT",
+                        "Watchlist": ", ".join(self.watchlist),
+                        "Timeframe": self.timeframe,
+                    },
+                )
+            except Exception as e:
+                logger.warning(f"Discord startup post failed: {e}")
 
     def run(self):
         """Main trading loop."""
@@ -323,7 +365,27 @@ class SITA:
         }
 
 
+def load_dotenv():
+    """Load .env file from project root into os.environ."""
+    try:
+        from pathlib import Path
+        env_path = Path(__file__).resolve().parent.parent / ".env"
+        if env_path.exists():
+            with open(env_path) as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith('#') and '=' in line:
+                        k, v = line.split('=', 1)
+                        v = v.strip().strip("'\"")
+                        import os
+                        os.environ.setdefault(k.strip(), v)
+            print(f"[dotenv] Loaded {env_path}")
+    except Exception as e:
+        print(f"[dotenv] Warning: {e}")
+
+
 def main():
+    load_dotenv()
     parser = argparse.ArgumentParser(description="SITA — Self-Improving Trading Agent")
     subparsers = parser.add_subparsers(dest="command")
 
