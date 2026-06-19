@@ -6,7 +6,7 @@ SITA is a fully autonomous, self-improving trading agent that runs on Linux and 
 
 Born from the ashes of Cthulu APEX (200K+ lines, 727 files), SITA distills the best signal grading, confluence scoring, and supernatural risk management into a clean, modular, production-ready architecture.
 
-**Current Status**: ✅ Live trading on Binance futures with $10.77 USDT
+**Current Status**: ✅ Live trading on Binance futures with USDT
 
 ---
 
