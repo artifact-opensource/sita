@@ -3,7 +3,7 @@
 
 **Linux-native. No MT5. No Wine. No Banks needed.**
 
-SITA is a self-improving trading agent that runs on Linux, connects directly to crypto exchanges via ccxt, and uses a deterministic fallback mechanism (with optional Hermes LLM integration) to reflect on its performance and evolve its strategy over time.
+SITA is a self-improving trading agent that runs on Linux, connects directly to crypto exchanges via ccxt, and uses a deterministic fallback mechanism (with optional LLM integration) to reflect on its performance and evolve its strategy over time.
 
 Born from the ashes of Cthulu APEX (200K+ lines, 727 files), SITA distills the best signal grading, 9-dimension confluence, and supernatural risk management into a clean, modular, Linux-native architecture.
 
