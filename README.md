@@ -1,4 +1,5 @@
-# SITA — Self-Improving Trading Agent
+# Self-Improving Trading Agent
+> Codename: SITA 🔱
 
 **Linux-native. No MT5. No Wine. No Banks needed.**
 
