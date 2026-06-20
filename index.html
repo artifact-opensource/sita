@@ -117,12 +117,7 @@ body {
 .dash-status-dot.offline { background: var(--red); }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
 
-.offline-banner {
-  background: var(--red-dim); border: 1px solid rgba(255,77,77,0.2); border-radius: 8px;
-  padding: 10px 16px; margin-bottom: 16px; display: flex; align-items: center; gap: 10px;
-  font-size: 0.82rem; color: var(--red);
-}
-.offline-banner .material-icons { font-size: 1.1rem; flex-shrink: 0; }
+
 
 /* Cards */
 .dash-card {
@@ -252,10 +247,7 @@ pre.cb {
     </div>
   </div>
 
-  <div class="offline-banner" id="offline-ban" style="display:none">
-    <span class="material-icons">warning</span>
-    <span>SITA engine offline — showing placeholder data. Run <code style="background:var(--bg);padding:1px 5px;border-radius:3px;font-size:0.75rem">python3 -m sita run</code> to go live.</span>
-  </div>
+
 
   <!-- Row 1 -->
   <div class="dg">
@@ -406,7 +398,6 @@ async function refresh() {
 function renderOffline() {
   $('ds-dot').className = 'dash-status-dot offline';
   $('ds-text').textContent = 'OFFLINE';
-  $('offline-ban').style.display = 'flex';
   $('d-mode').textContent = 'OFFLINE';
   $('ds-updated').textContent = 'offline';
   $('d-tpnl').textContent = '$—'; $('d-tpnl').className = 'mv neu'; $('d-tpnl-pct').textContent = '—';
@@ -441,7 +432,6 @@ function renderLive(d, h) {
 
   $('ds-dot').className = 'dash-status-dot ' + (engine ? 'live' : 'offline');
   $('ds-text').textContent = engine ? 'LIVE' : 'OFFLINE';
-  $('offline-ban').style.display = engine ? 'none' : 'flex';
   $('d-mode').textContent = (d.strategy?.mode || 'live').toUpperCase();
   $('ds-updated').textContent = new Date().toLocaleTimeString();
 
