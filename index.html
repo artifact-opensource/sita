@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
 <title>SITA — Self-Improving Trading Agent</title>
 <meta name="description" content="SITA is a fully autonomous, self-improving trading agent. Live dashboard, real-time trade tracking, and strategy evolution.">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
@@ -11,7 +11,6 @@
 :root {
   --bg: #08080c;
   --surface: #0e0e14;
-  --surface-2: #14141e;
   --border: rgba(255,255,255,0.06);
   --border-hi: rgba(255,255,255,0.12);
   --text: #d4d4dc;
@@ -35,134 +34,146 @@ body {
   background: var(--bg);
   color: var(--text);
   line-height: 1.5;
-  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 
-/* ── Cover page ── */
-#cover {
-  position: fixed; inset: 0; z-index: 100;
-  background: var(--bg);
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  transition: opacity 0.8s ease, visibility 0.8s ease;
+/* ── Nav ── */
+.topnav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+  background: rgba(8,8,12,0.85); backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px; height: 52px;
+  display: flex; align-items: center; justify-content: space-between;
 }
-#cover.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
-.cover-inner { text-align: center; max-width: 720px; padding: 2rem; }
-.cover-logo {
-  font-size: clamp(3rem, 8vw, 6rem);
-  font-weight: 700; letter-spacing: -0.04em; line-height: 0.9;
-  background: linear-gradient(180deg, #fff 0%, #555 100%);
+.topnav-brand { font-weight: 700; font-size: 1rem; letter-spacing: -0.02em; color: var(--text); text-decoration: none; }
+.topnav-brand span { color: var(--accent); }
+.topnav-links { display: flex; align-items: center; gap: 8px; }
+.topnav-links a {
+  color: var(--text-dim); text-decoration: none; font-size: 0.82rem;
+  padding: 6px 12px; border-radius: 6px; transition: color 0.15s, background 0.15s;
+  display: flex; align-items: center; gap: 4px;
+}
+.topnav-links a:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+.topnav-links a .material-icons { font-size: 1rem; }
+.topnav-links a.active { color: var(--accent); background: var(--accent-dim); }
+
+/* ── Hero ── */
+.hero {
+  min-height: 100vh; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; text-align: center;
+  padding: 80px 24px 60px;
+}
+.hero-logo {
+  font-size: clamp(3.5rem, 10vw, 7rem);
+  font-weight: 700; letter-spacing: -0.05em; line-height: 0.85;
+  background: linear-gradient(180deg, #fff 0%, #444 100%);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.3rem;
 }
-.cover-tagline {
-  font-size: 1.1rem; color: var(--text-dim); margin-bottom: 2.5rem; font-weight: 300;
-}
-.cover-stats {
-  display: flex; justify-content: center; gap: 3rem; margin-bottom: 3rem; flex-wrap: wrap;
-}
-.cover-stat { text-align: center; }
-.cover-stat-val { font-size: 1.6rem; font-weight: 700; color: var(--accent); font-family: 'JetBrains Mono', monospace; }
-.cover-stat-lbl { font-size: 0.7rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.1em; }
-.cover-features {
-  display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 3rem; text-align: left;
-}
-@media(max-width:600px){ .cover-features{grid-template-columns:1fr} }
-.cover-feat {
-  background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1rem;
-}
-.cover-feat .material-icons { font-size: 1.4rem; color: var(--accent); margin-bottom: 0.5rem; display: block; }
-.cover-feat h4 { font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem; }
-.cover-feat p { font-size: 0.75rem; color: var(--text-dim); line-height: 1.4; }
-.cover-enter {
-  display: inline-flex; align-items: center; gap: 0.5rem;
+.hero-tagline { font-size: 1.1rem; color: var(--text-dim); margin-bottom: 2.5rem; font-weight: 300; max-width: 500px; }
+.hero-stats { display: flex; justify-content: center; gap: 2.5rem; margin-bottom: 2.5rem; flex-wrap: wrap; }
+.hero-stat-val { font-size: 1.5rem; font-weight: 700; color: var(--accent); font-family: 'JetBrains Mono', monospace; }
+.hero-stat-lbl { font-size: 0.65rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 2px; }
+.hero-cta {
+  display: inline-flex; align-items: center; gap: 8px;
   background: var(--accent); color: var(--bg); font-weight: 600; font-size: 0.9rem;
-  padding: 12px 28px; border-radius: 8px; cursor: pointer; border: none;
-  transition: box-shadow 0.2s, transform 0.1s;
+  padding: 14px 32px; border-radius: 8px; cursor: pointer; border: none;
+  transition: box-shadow 0.2s, transform 0.1s; text-decoration: none;
 }
-.cover-enter:hover { box-shadow: 0 0 30px rgba(0,229,155,0.3); transform: translateY(-1px); }
-.cover-enter .material-icons { font-size: 1.1rem; }
+.hero-cta:hover { box-shadow: 0 0 30px rgba(0,229,155,0.25); transform: translateY(-1px); }
+.hero-cta .material-icons { font-size: 1.1rem; }
 
-/* ── Dashboard ── */
-#dashboard { display: none; min-height: 100vh; }
-#dashboard.active { display: block; }
-
-.dash-header {
-  background: var(--surface); border-bottom: 1px solid var(--border);
-  padding: 12px 24px; display: flex; justify-content: space-between; align-items: center;
-  position: sticky; top: 0; z-index: 50; backdrop-filter: blur(12px);
+/* ── Features ── */
+.features-section { padding: 80px 24px; max-width: 1100px; margin: 0 auto; }
+.section-title { font-size: 1.6rem; font-weight: 700; text-align: center; margin-bottom: 8px; }
+.section-subtitle { text-align: center; color: var(--text-dim); font-size: 0.9rem; margin-bottom: 40px; }
+.features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+@media(max-width:700px){ .features-grid{grid-template-columns:1fr} }
+.feat-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  padding: 20px; transition: border-color 0.2s, transform 0.15s;
 }
-.dash-header-left { display: flex; align-items: center; gap: 12px; }
-.dash-logo { font-weight: 700; font-size: 1.1rem; letter-spacing: -0.02em; }
-.dash-logo span { color: var(--accent); }
-.dash-header-right { display: flex; align-items: center; gap: 16px; font-size: 0.75rem; font-family: 'JetBrains Mono', monospace; }
-.dash-status { display: flex; align-items: center; gap: 6px; }
+.feat-card:hover { border-color: var(--border-hi); transform: translateY(-2px); }
+.feat-card .material-icons { font-size: 1.5rem; color: var(--accent); margin-bottom: 10px; display: block; }
+.feat-card h4 { font-size: 0.9rem; font-weight: 600; margin-bottom: 4px; }
+.feat-card p { font-size: 0.78rem; color: var(--text-dim); line-height: 1.45; }
+
+/* ── Dashboard section ── */
+.dash-section { padding: 0 24px 60px; max-width: 1400px; margin: 0 auto; }
+.dash-section-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 20px; flex-wrap: wrap; gap: 12px;
+}
+.dash-section-title { font-size: 1.3rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.dash-section-title .material-icons { font-size: 1.3rem; color: var(--accent); }
+.dash-status-pill {
+  display: flex; align-items: center; gap: 6px;
+  font-family: 'JetBrains Mono', monospace; font-size: 0.72rem;
+  padding: 4px 12px; border-radius: 20px; border: 1px solid var(--border);
+}
 .dash-status-dot { width: 7px; height: 7px; border-radius: 50%; }
-.dash-status-dot.online { background: var(--accent); box-shadow: 0 0 8px var(--accent); animation: pulse 2s infinite; }
+.dash-status-dot.live { background: var(--accent); box-shadow: 0 0 8px var(--accent); animation: pulse 2s infinite; }
 .dash-status-dot.offline { background: var(--red); }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
 
-.dash-container { max-width: 1400px; margin: 0 auto; padding: 24px; }
-
-/* Offline banner */
 .offline-banner {
   background: var(--red-dim); border: 1px solid rgba(255,77,77,0.2); border-radius: 8px;
-  padding: 10px 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;
-  font-size: 0.85rem; color: var(--red);
+  padding: 10px 16px; margin-bottom: 16px; display: flex; align-items: center; gap: 10px;
+  font-size: 0.82rem; color: var(--red);
 }
-.offline-banner .material-icons { font-size: 1.2rem; }
+.offline-banner .material-icons { font-size: 1.1rem; flex-shrink: 0; }
 
 /* Cards */
 .dash-card {
-  background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px;
   transition: border-color 0.2s;
 }
 .dash-card:hover { border-color: var(--border-hi); }
 .dash-card-label {
-  font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; color: var(--text-dim);
-  text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 10px;
+  font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; color: var(--text-dim);
+  text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 8px;
   display: flex; justify-content: space-between; align-items: center;
 }
 
 /* Grid */
-.dash-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
-.dash-grid-2 { grid-template-columns: repeat(2, 1fr); }
-.dash-grid-3 { grid-template-columns: repeat(3, 1fr); }
-@media(max-width:900px){ .dash-grid{grid-template-columns:repeat(2,1fr)} .dash-grid-2,.dash-grid-3{grid-template-columns:1fr} }
+.dg { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 16px; }
+.dg-2 { grid-template-columns: repeat(2, 1fr); }
+.dg-3 { grid-template-columns: repeat(3, 1fr); }
+@media(max-width:900px){ .dg{grid-template-columns:repeat(2,1fr)} .dg-2,.dg-3{grid-template-columns:1fr} }
 
 /* Metrics */
-.metric-val { font-size: 1.8rem; font-weight: 700; letter-spacing: -0.02em; font-family: 'JetBrains Mono', monospace; }
-.metric-val.pos { color: var(--accent); }
-.metric-val.neg { color: var(--red); }
-.metric-val.neu { color: var(--blue); }
-.metric-sub { font-size: 0.75rem; color: var(--text-dim); margin-top: 2px; }
+.mv { font-size: 1.7rem; font-weight: 700; letter-spacing: -0.02em; font-family: 'JetBrains Mono', monospace; }
+.mv.pos { color: var(--accent); }
+.mv.neg { color: var(--red); }
+.mv.neu { color: var(--blue); }
+.ms { font-size: 0.72rem; color: var(--text-dim); margin-top: 2px; }
 
-/* Progress bar */
-.prog-bar { height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; margin-top: 8px; overflow: hidden; }
-.prog-fill { height: 100%; border-radius: 2px; transition: width 0.4s ease; }
-.prog-fill.g { background: var(--accent); }
-.prog-fill.r { background: var(--red); }
-.prog-fill.b { background: var(--blue); }
-.prog-fill.y { background: var(--gold); }
+/* Progress */
+.pb { height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; margin-top: 6px; overflow: hidden; }
+.pf { height: 100%; border-radius: 2px; transition: width 0.4s ease; }
+.pf.g { background: var(--accent); }
+.pf.r { background: var(--red); }
+.pf.b { background: var(--blue); }
+.pf.y { background: var(--gold); }
 
 /* Rows */
-.row-item { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 0.82rem; }
-.row-item:last-child { border-bottom: none; }
-.row-label { color: var(--text-dim); }
-.row-val { font-weight: 500; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; }
-.row-val.g { color: var(--accent); }
-.row-val.r { color: var(--red); }
-.row-val.b { color: var(--blue); }
-.row-val.y { color: var(--gold); }
+.ri { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 0.8rem; }
+.ri:last-child { border-bottom: none; }
+.ri-l { color: var(--text-dim); }
+.ri-v { font-weight: 500; font-family: 'JetBrains Mono', monospace; font-size: 0.76rem; }
+.ri-v.g { color: var(--accent); }
+.ri-v.r { color: var(--red); }
+.ri-v.b { color: var(--blue); }
+.ri-v.y { color: var(--gold); }
 
 /* Table */
-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
-th { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); color: var(--text-dim); font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; font-family: 'JetBrains Mono', monospace; }
-td { padding: 8px 10px; border-bottom: 1px solid var(--border); }
+table { width: 100%; border-collapse: collapse; font-size: 0.76rem; }
+th { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--border); color: var(--text-dim); font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.1em; font-family: 'JetBrains Mono', monospace; }
+td { padding: 7px 8px; border-bottom: 1px solid var(--border); }
 tr:hover td { background: rgba(255,255,255,0.015); }
 
-/* Badge */
-.badge { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 0.65rem; font-weight: 600; text-transform: uppercase; font-family: 'JetBrains Mono', monospace; }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 0.6rem; font-weight: 600; text-transform: uppercase; font-family: 'JetBrains Mono', monospace; }
 .badge.long { background: var(--accent-dim); color: var(--accent); }
 .badge.short { background: var(--red-dim); color: var(--red); }
 .badge.premium { background: var(--purple-dim); color: var(--purple); }
@@ -171,20 +182,18 @@ tr:hover td { background: rgba(255,255,255,0.015); }
 .badge.reject { background: var(--red-dim); color: var(--red); }
 
 /* Chart */
-.chart-wrap { height: 220px; }
-.chart-lg { height: 280px; }
+.cw { height: 200px; }
+.cw-lg { height: 260px; }
 
-/* Pre / code */
-pre.code-block {
-  font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--accent);
-  white-space: pre-wrap; word-break: break-all; line-height: 1.6;
+pre.cb {
+  font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--accent);
+  white-space: pre-wrap; word-break: break-all; line-height: 1.5;
 }
 
 /* Footer */
-.dash-footer { text-align: center; padding: 20px; color: var(--text-dim); font-size: 0.72rem; border-top: 1px solid var(--border); margin-top: 24px; }
-.dash-footer a { color: var(--accent); text-decoration: none; }
+.footer { text-align: center; padding: 24px; color: var(--text-dim); font-size: 0.7rem; border-top: 1px solid var(--border); margin-top: 20px; }
+.footer a { color: var(--accent); text-decoration: none; }
 
-/* Scrollbar */
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: var(--bg); }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
@@ -192,244 +201,188 @@ pre.code-block {
 </head>
 <body>
 
-<!-- ═══════════ COVER PAGE ═══════════ -->
-<div id="cover">
-  <div class="cover-inner">
-    <div class="cover-logo">SITA</div>
-    <p class="cover-tagline">Self-Improving Trading Agent — Autonomous. Adaptive. Open Source.</p>
-
-    <div class="cover-stats" id="cover-stats">
-      <div class="cover-stat"><div class="cover-stat-val" id="cs-balance">$—</div><div class="cover-stat-lbl">Balance</div></div>
-      <div class="cover-stat"><div class="cover-stat-val" id="cs-pnl">—</div><div class="cover-stat-lbl">Total P&amp;L</div></div>
-      <div class="cover-stat"><div class="cover-stat-val" id="cs-wr">—</div><div class="cover-stat-lbl">Win Rate</div></div>
-      <div class="cover-stat"><div class="cover-stat-val" id="cs-dd">—</div><div class="cover-stat-lbl">Max Drawdown</div></div>
-    </div>
-
-    <div class="cover-features">
-      <div class="cover-feat">
-        <span class="material-icons">auto_awesome</span>
-        <h4>8 Strategies</h4>
-        <p>EMA crossover, momentum, trend following, mean reversion, RSI reversal, scalping, and fallback</p>
-      </div>
-      <div class="cover-feat">
-        <span class="material-icons">filter_9</span>
-        <h4>9-Dimension Confluence</h4>
-        <p>Level, trend, momentum, BOS, order blocks, structure, session ORB, timing</p>
-      </div>
-      <div class="cover-feat">
-        <span class="material-icons">psychology</span>
-        <h4>Self-Improving</h4>
-        <p>Deterministic reflection loop evolves strategy one variable at a time</p>
-      </div>
-      <div class="cover-feat">
-        <span class="material-icons">shield</span>
-        <h4>Adaptive Risk</h4>
-        <p>%R sizing, ATR-based SL/TP, daily/weekly/total circuit breakers</p>
-      </div>
-      <div class="cover-feat">
-        <span class="material-icons">hub</span>
-        <h4>105+ Exchanges</h4>
-        <p>ccxt-powered. Binance, Bybit, OKX, Kraken pre-configured</p>
-      </div>
-      <div class="cover-feat">
-        <span class="material-icons">chat</span>
-        <h4>Discord Alerts</h4>
-        <p>Rich embeds for trades, signals, reflections, daily reports</p>
-      </div>
-    </div>
-
-    <button class="cover-enter" onclick="enterDashboard()">
-      <span class="material-icons">dashboard</span>
-      Open Dashboard
-    </button>
+<!-- ═══════════ NAV ═══════════ -->
+<nav class="topnav">
+  <a href="#hero" class="topnav-brand">SITA <span>Dashboard</span></a>
+  <div class="topnav-links">
+    <a href="#features"><span class="material-icons">auto_awesome</span> Features</a>
+    <a href="#dashboard" class="active"><span class="material-icons">dashboard</span> Live</a>
+    <a href="https://github.com/artifact-opensource/sita" target="_blank"><span class="material-icons">code</span> Source</a>
   </div>
-</div>
+</nav>
+
+<!-- ═══════════ HERO ═══════════ -->
+<section class="hero" id="hero">
+  <div class="hero-logo">SITA</div>
+  <p class="hero-tagline">Self-Improving Trading Agent — Autonomous. Adaptive. Open Source.</p>
+  <div class="hero-stats" id="hero-stats">
+    <div><div class="hero-stat-val" id="hs-bal">$—</div><div class="hero-stat-lbl">Balance</div></div>
+    <div><div class="hero-stat-val" id="hs-pnl">—</div><div class="hero-stat-lbl">Total P&amp;L</div></div>
+    <div><div class="hero-stat-val" id="hs-wr">—</div><div class="hero-stat-lbl">Win Rate</div></div>
+    <div><div class="hero-stat-val" id="hs-dd">—</div><div class="hero-stat-lbl">Max Drawdown</div></div>
+  </div>
+  <a href="#dashboard" class="hero-cta">
+    <span class="material-icons">monitoring</span>
+    Open Live Dashboard
+  </a>
+</section>
+
+<!-- ═══════════ FEATURES ═══════════ -->
+<section class="features-section" id="features">
+  <h2 class="section-title">Built for Serious Trading</h2>
+  <p class="section-subtitle">Signal generation to self-improving strategy evolution — no black boxes.</p>
+  <div class="features-grid">
+    <div class="feat-card"><span class="material-icons">auto_awesome</span><h4>8 Strategies</h4><p>EMA crossover, momentum, trend following, mean reversion, RSI reversal, scalping, and fallback</p></div>
+    <div class="feat-card"><span class="material-icons">filter_9</span><h4>9-Dimension Confluence</h4><p>Level, trend, momentum, BOS, order blocks, structure, session ORB, timing</p></div>
+    <div class="feat-card"><span class="material-icons">psychology</span><h4>Self-Improving</h4><p>Deterministic reflection loop evolves strategy one variable at a time</p></div>
+    <div class="feat-card"><span class="material-icons">shield</span><h4>Adaptive Risk</h4><p>%R sizing, ATR-based SL/TP, daily/weekly/total circuit breakers</p></div>
+    <div class="feat-card"><span class="material-icons">hub</span><h4>105+ Exchanges</h4><p>ccxt-powered. Binance, Bybit, OKX, Kraken pre-configured</p></div>
+    <div class="feat-card"><span class="material-icons">chat</span><h4>Discord Alerts</h4><p>Rich embeds for trades, signals, reflections, daily reports</p></div>
+  </div>
+</section>
 
 <!-- ═══════════ DASHBOARD ═══════════ -->
-<div id="dashboard">
-  <div class="dash-header">
-    <div class="dash-header-left">
-      <span class="dash-logo">SITA <span>Dashboard</span></span>
-    </div>
-    <div class="dash-header-right">
-      <div class="dash-status">
-        <span class="dash-status-dot" id="status-dot"></span>
-        <span id="status-text">Connecting...</span>
-      </div>
-      <div id="updated" style="color:var(--text-dim)">—</div>
+<section class="dash-section" id="dashboard">
+  <div class="dash-section-header">
+    <h2 class="dash-section-title"><span class="material-icons">monitoring</span> Live Dashboard</h2>
+    <div class="dash-status-pill">
+      <span class="dash-status-dot offline" id="ds-dot"></span>
+      <span id="ds-text">Connecting...</span>
+      <span id="ds-updated" style="color:var(--text-dim);margin-left:6px">—</span>
     </div>
   </div>
 
-  <div class="dash-container">
-    <!-- Offline banner -->
-    <div class="offline-banner" id="offline-banner" style="display:none">
-      <span class="material-icons">warning</span>
-      <span>SITA engine offline — showing last known data. Start <code style="background:var(--bg);padding:1px 6px;border-radius:3px">python3 -m sita run</code> to go live.</span>
-    </div>
+  <div class="offline-banner" id="offline-ban" style="display:none">
+    <span class="material-icons">warning</span>
+    <span>SITA engine offline — showing placeholder data. Run <code style="background:var(--bg);padding:1px 5px;border-radius:3px;font-size:0.75rem">python3 -m sita run</code> to go live.</span>
+  </div>
 
-    <!-- Row 1: Key metrics -->
-    <div class="dash-grid">
-      <div class="dash-card">
-        <div class="dash-card-label"><span>Total P&amp;L</span><span id="d-mode">paper</span></div>
-        <div class="metric-val neu" id="d-tpnl">$0.00</div>
-        <div class="metric-sub" id="d-tpnl-pct">0.00%</div>
-      </div>
-      <div class="dash-card">
-        <div class="dash-card-label"><span>Win Rate</span><span id="d-trades">0 trades</span></div>
-        <div class="metric-val neu" id="d-wr">0%</div>
-        <div class="metric-sub"><span id="d-wins">0</span>W / <span id="d-losses">0</span>L</div>
-      </div>
-      <div class="dash-card">
-        <div class="dash-card-label"><span>Max Drawdown</span><span id="d-dd-limit">limit 20%</span></div>
-        <div class="metric-val neg" id="d-dd">0.0%</div>
-        <div class="prog-bar"><div class="prog-fill r" id="d-dd-bar" style="width:0%"></div></div>
-      </div>
-      <div class="dash-card">
-        <div class="dash-card-label"><span>Sharpe Ratio</span><span id="d-sharpe-min">min 1.2</span></div>
-        <div class="metric-val neu" id="d-sharpe">0.00</div>
-        <div class="metric-sub">Profit Factor: <span id="d-pf">0.00</span></div>
-      </div>
+  <!-- Row 1 -->
+  <div class="dg">
+    <div class="dash-card">
+      <div class="dash-card-label"><span>Total P&amp;L</span><span id="d-mode">—</span></div>
+      <div class="mv neu" id="d-tpnl">$0.00</div>
+      <div class="ms" id="d-tpnl-pct">0.00%</div>
     </div>
-
-    <!-- Row 2: Daily/Weekly + Confluence -->
-    <div class="dash-grid">
-      <div class="dash-card">
-        <div class="dash-card-label"><span>Daily P&amp;L</span><span>limit 5%</span></div>
-        <div class="metric-val neu" id="d-daily">$0.00</div>
-        <div class="prog-bar"><div class="prog-fill b" id="d-daily-bar" style="width:0%"></div></div>
-      </div>
-      <div class="dash-card">
-        <div class="dash-card-label"><span>Weekly P&amp;L</span><span>limit 10%</span></div>
-        <div class="metric-val neu" id="d-weekly">$0.00</div>
-        <div class="prog-bar"><div class="prog-fill b" id="d-weekly-bar" style="width:0%"></div></div>
-      </div>
-      <div class="dash-card">
-        <div class="dash-card-label"><span>Avg Confluence</span><span id="d-last-conf">last —</span></div>
-        <div class="metric-val neu" id="d-avg-conf">0</div>
-        <div class="metric-sub">Gross: <span id="d-gross-p">$0</span> / <span id="d-gross-l">$0</span></div>
-      </div>
-      <div class="dash-card">
-        <div class="dash-card-label"><span>Open Positions</span><span id="d-pos-count">0 / 1</span></div>
-        <div class="metric-val neu" id="d-pos-val">0</div>
-        <div class="prog-bar"><div class="prog-fill g" id="d-pos-bar" style="width:0%"></div></div>
-      </div>
+    <div class="dash-card">
+      <div class="dash-card-label"><span>Win Rate</span><span id="d-trades">0 trades</span></div>
+      <div class="mv neu" id="d-wr">0%</div>
+      <div class="ms"><span id="d-wins">0</span>W / <span id="d-losses">0</span>L</div>
     </div>
-
-    <!-- Row 3: Equity + Strategy -->
-    <div class="dash-grid dash-grid-2">
-      <div class="dash-card">
-        <div class="dash-card-label"><span>Equity Curve</span><span id="d-eq-count">0 trades</span></div>
-        <div class="chart-wrap chart-lg"><canvas id="chart-equity"></canvas></div>
-      </div>
-      <div class="dash-card">
-        <div class="dash-card-label"><span>Strategy Performance</span></div>
-        <div id="d-strategies">
-          <div class="row-item"><span class="row-label">No data yet</span></div>
-        </div>
-      </div>
+    <div class="dash-card">
+      <div class="dash-card-label"><span>Max Drawdown</span><span>limit 20%</span></div>
+      <div class="mv neg" id="d-dd">0.0%</div>
+      <div class="pb"><div class="pf r" id="d-dd-bar" style="width:0%"></div></div>
     </div>
-
-    <!-- Row 4: Confluence distribution + Risk -->
-    <div class="dash-grid dash-grid-2">
-      <div class="dash-card">
-        <div class="dash-card-label"><span>Confluence Distribution</span></div>
-        <div class="chart-wrap"><canvas id="chart-conf"></canvas></div>
-      </div>
-      <div class="dash-card">
-        <div class="dash-card-label"><span>Risk Gauges</span></div>
-        <div class="row-item"><span class="row-label">Daily Loss</span><span class="row-val" id="d-risk-daily">0%</span></div>
-        <div class="prog-bar"><div class="prog-fill y" id="d-risk-daily-bar" style="width:0%"></div></div>
-        <div class="row-item"><span class="row-label">Weekly Loss</span><span class="row-val" id="d-risk-weekly">0%</span></div>
-        <div class="prog-bar"><div class="prog-fill y" id="d-risk-weekly-bar" style="width:0%"></div></div>
-        <div class="row-item"><span class="row-label">Drawdown Used</span><span class="row-val" id="d-risk-dd">0% / 20%</span></div>
-        <div class="prog-bar"><div class="prog-fill r" id="d-risk-dd-bar" style="width:0%"></div></div>
-        <div class="row-item"><span class="row-label">Total Loss</span><span class="row-val" id="d-risk-total">inactive</span></div>
-      </div>
-    </div>
-
-    <!-- Row 5: Trade history -->
-    <div class="dash-card" style="margin-bottom:20px">
-      <div class="dash-card-label"><span>Trade History</span><span id="d-trade-count">0 trades</span></div>
-      <div style="max-height:360px;overflow-y:auto">
-        <table>
-          <thead><tr>
-            <th>Time</th><th>Symbol</th><th>Side</th><th>Entry</th><th>Exit</th>
-            <th>Size</th><th>P&amp;L</th><th>Reason</th><th>Strategy</th><th>Conf</th>
-          </tr></thead>
-          <tbody id="d-trade-body"><tr><td colspan="10" style="text-align:center;color:var(--text-dim);padding:24px">No trades yet</td></tr></tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- Row 6: Reflection + Strategy -->
-    <div class="dash-grid dash-grid-2">
-      <div class="dash-card">
-        <div class="dash-card-label"><span>Reflection Log</span></div>
-        <div id="d-reflection" style="max-height:260px;overflow-y:auto">
-          <div class="row-item"><span class="row-label">No reflections yet</span></div>
-        </div>
-      </div>
-      <div class="dash-card">
-        <div class="dash-card-label"><span>Strategy Evolution</span></div>
-        <div id="d-evolution" style="max-height:260px;overflow-y:auto">
-          <div class="row-item"><span class="row-label">No strategy changes yet</span></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Row 7: Current config -->
-    <div class="dash-grid dash-grid-2">
-      <div class="dash-card">
-        <div class="dash-card-label"><span>Current Strategy</span></div>
-        <pre class="code-block" id="d-strategy">{}</pre>
-      </div>
-      <div class="dash-card">
-        <div class="dash-card-label"><span>Goal Configuration</span></div>
-        <pre class="code-block" id="d-goal">{}</pre>
-      </div>
-    </div>
-
-    <div class="dash-footer">
-      <a href="https://github.com/artifact-opensource/sita" target="_blank">SITA v1.0.0 APEX</a> — MIT License — artifact-opensource
+    <div class="dash-card">
+      <div class="dash-card-label"><span>Sharpe Ratio</span><span>min 1.2</span></div>
+      <div class="mv neu" id="d-sharpe">0.00</div>
+      <div class="ms">PF: <span id="d-pf">0.00</span></div>
     </div>
   </div>
-</div>
+
+  <!-- Row 2 -->
+  <div class="dg">
+    <div class="dash-card">
+      <div class="dash-card-label"><span>Daily P&amp;L</span><span>limit 5%</span></div>
+      <div class="mv neu" id="d-daily">$0.00</div>
+      <div class="pb"><div class="pf b" id="d-daily-bar" style="width:0%"></div></div>
+    </div>
+    <div class="dash-card">
+      <div class="dash-card-label"><span>Weekly P&amp;L</span><span>limit 10%</span></div>
+      <div class="mv neu" id="d-weekly">$0.00</div>
+      <div class="pb"><div class="pf b" id="d-weekly-bar" style="width:0%"></div></div>
+    </div>
+    <div class="dash-card">
+      <div class="dash-card-label"><span>Avg Confluence</span><span id="d-lc">last —</span></div>
+      <div class="mv neu" id="d-ac">0</div>
+      <div class="ms">Gross: <span id="d-gp">$0</span> / <span id="d-gl">$0</span></div>
+    </div>
+    <div class="dash-card">
+      <div class="dash-card-label"><span>Open Positions</span><span id="d-pc">0 / 1</span></div>
+      <div class="mv neu" id="d-pv">0</div>
+      <div class="pb"><div class="pf g" id="d-pb" style="width:0%"></div></div>
+    </div>
+  </div>
+
+  <!-- Row 3 -->
+  <div class="dg dg-2">
+    <div class="dash-card">
+      <div class="dash-card-label"><span>Equity Curve</span><span id="d-ec">0 trades</span></div>
+      <div class="cw cw-lg"><canvas id="c-eq"></canvas></div>
+    </div>
+    <div class="dash-card">
+      <div class="dash-card-label"><span>Strategy Performance</span></div>
+      <div id="d-strat"><div class="ri"><span class="ri-l">No data yet</span></div></div>
+    </div>
+  </div>
+
+  <!-- Row 4 -->
+  <div class="dg dg-2">
+    <div class="dash-card">
+      <div class="dash-card-label"><span>Confluence Distribution</span></div>
+      <div class="cw"><canvas id="c-cf"></canvas></div>
+    </div>
+    <div class="dash-card">
+      <div class="dash-card-label"><span>Risk Gauges</span></div>
+      <div class="ri"><span class="ri-l">Daily Loss</span><span class="ri-v" id="d-rd">0%</span></div>
+      <div class="pb"><div class="pf y" id="d-rdb" style="width:0%"></div></div>
+      <div class="ri"><span class="ri-l">Weekly Loss</span><span class="ri-v" id="d-rw">0%</span></div>
+      <div class="pb"><div class="pf y" id="d-rwb" style="width:0%"></div></div>
+      <div class="ri"><span class="ri-l">Drawdown Used</span><span class="ri-v" id="d-rdd">0% / 20%</span></div>
+      <div class="pb"><div class="pf r" id="d-rddb" style="width:0%"></div></div>
+      <div class="ri"><span class="ri-l">Total Loss</span><span class="ri-v" id="d-rt">active</span></div>
+    </div>
+  </div>
+
+  <!-- Row 5: Trades -->
+  <div class="dash-card" style="margin-bottom:16px">
+    <div class="dash-card-label"><span>Trade History</span><span id="d-tc">0 trades</span></div>
+    <div style="max-height:320px;overflow-y:auto">
+      <table>
+        <thead><tr><th>Time</th><th>Symbol</th><th>Side</th><th>Entry</th><th>Exit</th><th>Size</th><th>P&amp;L</th><th>Reason</th><th>Strategy</th><th>Conf</th></tr></thead>
+        <tbody id="d-tb"><tr><td colspan="10" style="text-align:center;color:var(--text-dim);padding:20px">No trades yet</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Row 6 -->
+  <div class="dg dg-2">
+    <div class="dash-card">
+      <div class="dash-card-label"><span>Reflection Log</span></div>
+      <div id="d-ref" style="max-height:240px;overflow-y:auto"><div class="ri"><span class="ri-l">No reflections yet</span></div></div>
+    </div>
+    <div class="dash-card">
+      <div class="dash-card-label"><span>Strategy Evolution</span></div>
+      <div id="d-evo" style="max-height:240px;overflow-y:auto"><div class="ri"><span class="ri-l">No strategy changes yet</span></div></div>
+    </div>
+  </div>
+
+  <!-- Row 7 -->
+  <div class="dg dg-2">
+    <div class="dash-card">
+      <div class="dash-card-label"><span>Current Strategy</span></div>
+      <pre class="cb" id="d-st">{}</pre>
+    </div>
+    <div class="dash-card">
+      <div class="dash-card-label"><span>Goal Configuration</span></div>
+      <pre class="cb" id="d-go">{}</pre>
+    </div>
+  </div>
+
+  <div class="footer">
+    <a href="https://github.com/artifact-opensource/sita" target="_blank">SITA v1.0.0 APEX</a> — MIT License — artifact-opensource
+  </div>
+</section>
 
 <script>
-/* ── Helpers ── */
 const $ = id => document.getElementById(id);
 function fmt(n, d=2) { return typeof n === 'number' ? n.toFixed(d) : (n || '—'); }
 function fmtPct(n) { return (n * 100).toFixed(1) + '%'; }
 function pnlCls(n) { return n > 0 ? 'pos' : n < 0 ? 'neg' : 'neu'; }
 
-/* ── Cover page ── */
-function enterDashboard() {
-  $('cover').classList.add('hidden');
-  $('dashboard').classList.add('active');
-  startPolling();
-}
-// Auto-enter after 3s if API is already responding
-setTimeout(() => {
-  Promise.all([fetch('/api/data'), fetch('/api/health')])
-    .then(([r1, r2]) => Promise.all([r1.json(), r2.json()]))
-    .then(([d, h]) => {
-      if (d && d.stats) updateCover(d, h);
-    }).catch(() => {});
-}, 500);
-
-function updateCover(d, health) {
-  const s = d.stats || {};
-  const engineOnline = health && health.engine === 'running';
-  $('cs-balance').textContent = '$' + fmt(10000 + (s.total_pnl || 0));
-  $('cs-pnl').textContent = (s.total_pnl >= 0 ? '+' : '') + '$' + fmt(s.total_pnl || 0);
-  $('cs-pnl').style.color = (s.total_pnl || 0) >= 0 ? 'var(--accent)' : 'var(--red)';
-  $('cs-wr').textContent = fmtPct(s.win_rate || 0);
-  $('cs-dd').textContent = fmtPct(s.max_drawdown || 0);
-}
-
-/* ── Dashboard polling ── */
+/* ── Polling ── */
 let pollTimer = null;
-let isOnline = false;
 
 function startPolling() {
   refresh();
@@ -438,281 +391,202 @@ function startPolling() {
 
 async function refresh() {
   try {
-    const [dataRes, healthRes] = await Promise.all([
-      fetch('/api/data'),
-      fetch('/api/health')
-    ]);
-    if (!dataRes.ok) throw new Error('HTTP ' + dataRes.status);
-    const d = await dataRes.json();
-    const h = healthRes.ok ? await healthRes.json() : {};
-    if (!d || !d.stats) throw new Error('No data');
-    isOnline = true;
-    renderDashboard(d, h);
+    const [dr, hr] = await Promise.all([fetch('/api/data'), fetch('/api/health')]);
+    if (!dr.ok) throw new Error('HTTP ' + dr.status);
+    const d = await dr.json();
+    const h = hr.ok ? await hr.json() : {};
+    if (!d || !d.stats) throw new Error('No stats');
+    renderLive(d, h);
   } catch (e) {
-    isOnline = false;
-    showOffline();
+    renderOffline();
   }
 }
 
-function showOffline() {
-  $('status-dot').className = 'dash-status-dot offline';
-  $('status-text').textContent = 'OFFLINE';
-  $('offline-banner').style.display = 'flex';
-  // Show dummy data
-  renderDummy();
+/* ── Offline / dummy ── */
+function renderOffline() {
+  $('ds-dot').className = 'dash-status-dot offline';
+  $('ds-text').textContent = 'OFFLINE';
+  $('offline-ban').style.display = 'flex';
+  $('d-mode').textContent = 'OFFLINE';
+  $('ds-updated').textContent = 'offline';
+  $('d-tpnl').textContent = '$—'; $('d-tpnl').className = 'mv neu'; $('d-tpnl-pct').textContent = '—';
+  $('d-wr').textContent = '—'; $('d-trades').textContent = 'no data'; $('d-wins').textContent = '—'; $('d-losses').textContent = '—';
+  $('d-dd').textContent = '—'; $('d-dd-bar').style.width = '0%';
+  $('d-sharpe').textContent = '—'; $('d-pf').textContent = '—';
+  $('d-daily').textContent = '$—'; $('d-daily').className = 'mv neu'; $('d-daily-bar').style.width = '0%';
+  $('d-weekly').textContent = '$—'; $('d-weekly').className = 'mv neu'; $('d-weekly-bar').style.width = '0%';
+  $('d-ac').textContent = '—'; $('d-lc').textContent = 'last —'; $('d-gp').textContent = '$—'; $('d-gl').textContent = '$—';
+  $('d-pv').textContent = '—'; $('d-pc').textContent = '— / —'; $('d-pb').style.width = '0%';
+  $('d-ec').textContent = 'no data'; $('d-tc').textContent = 'no data';
+  $('d-tb').innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--text-dim);padding:20px">No trades recorded</td></tr>';
+  $('d-strat').innerHTML = '<div class="ri"><span class="ri-l">Engine offline</span></div>';
+  $('d-ref').innerHTML = '<div class="ri"><span class="ri-l">No data</span></div>';
+  $('d-evo').innerHTML = '<div class="ri"><span class="ri-l">No data</span></div>';
+  $('d-st').textContent = '{\n  "status": "offline"\n}';
+  $('d-go').textContent = '{\n  "status": "offline"\n}';
+  $('d-rd').textContent = '—'; $('d-rdb').style.width = '0%';
+  $('d-rw').textContent = '—'; $('d-rwb').style.width = '0%';
+  $('d-rdd').textContent = '—'; $('d-rddb').style.width = '0%';
+  $('d-rt').textContent = 'offline'; $('d-rt').className = 'ri-v r';
+  // Hero
+  $('hs-bal').textContent = '$—'; $('hs-pnl').textContent = '—'; $('hs-wr').textContent = '—'; $('hs-dd').textContent = '—';
+  drawEq([]); drawCf([]);
 }
 
-function renderDummy() {
-  $('d-mode').textContent = 'offline';
-  $('d-tpnl').textContent = '$10.94';
-  $('d-tpnl').className = 'metric-val neu';
-  $('d-tpnl-pct').textContent = '0.00%';
-  $('d-wr').textContent = '—';
-  $('d-trades').textContent = 'no data';
-  $('d-wins').textContent = '—';
-  $('d-losses').textContent = '—';
-  $('d-dd').textContent = '0.0%';
-  $('d-dd-bar').style.width = '0%';
-  $('d-sharpe').textContent = '—';
-  $('d-pf').textContent = '—';
-  $('d-daily').textContent = '$0.00';
-  $('d-daily').className = 'metric-val neu';
-  $('d-daily-bar').style.width = '0%';
-  $('d-weekly').textContent = '$0.00';
-  $('d-weekly').className = 'metric-val neu';
-  $('d-weekly-bar').style.width = '0%';
-  $('d-avg-conf').textContent = '—';
-  $('d-last-conf').textContent = 'last —';
-  $('d-gross-p').textContent = '$0';
-  $('d-gross-l').textContent = '$0';
-  $('d-pos-val').textContent = '0';
-  $('d-pos-count').textContent = '0 / 1';
-  $('d-pos-bar').style.width = '0%';
-  $('d-trade-body').innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--text-dim);padding:24px">No trades recorded yet</td></tr>';
-  $('d-reflection').innerHTML = '<div class="row-item"><span class="row-label">Start SITA to see reflections</span></div>';
-  $('d-evolution').innerHTML = '<div class="row-item"><span class="row-label">Start SITA to see strategy evolution</span></div>';
-  $('d-strategy').textContent = '{\n  "status": "offline",\n  "message": "Start SITA engine to load strategy"\n}';
-  $('d-goal').textContent = '{\n  "status": "offline",\n  "message": "Start SITA engine to load goals"\n}';
-  $('d-strategies').innerHTML = '<div class="row-item"><span class="row-label">No data — engine offline</span></div>';
-  $('d-eq-count').textContent = 'no data';
-  $('d-trade-count').textContent = 'no data';
-  $('updated').textContent = 'offline';
-  drawEquity([]);
-  drawConf([]);
-}
-
-/* ── Render live data ── */
-function renderDashboard(d, health) {
+/* ── Live data ── */
+function renderLive(d, h) {
   const s = d.stats || {};
   const trades = d.trades || [];
-  const engineOnline = health && health.engine === 'running';
+  const engine = h && h.engine === 'running';
 
-  // Status
-  $('status-dot').className = 'dash-status-dot ' + (engineOnline ? 'online' : 'offline');
-  $('status-text').textContent = engineOnline ? 'LIVE' : 'OFFLINE';
-  $('offline-banner').style.display = engineOnline ? 'none' : 'flex';
+  $('ds-dot').className = 'dash-status-dot ' + (engine ? 'live' : 'offline');
+  $('ds-text').textContent = engine ? 'LIVE' : 'OFFLINE';
+  $('offline-ban').style.display = engine ? 'none' : 'flex';
   $('d-mode').textContent = (d.strategy?.mode || 'live').toUpperCase();
-  $('updated').textContent = new Date().toLocaleTimeString();
+  $('ds-updated').textContent = new Date().toLocaleTimeString();
 
   // Row 1
   const tp = s.total_pnl || 0;
   $('d-tpnl').textContent = (tp >= 0 ? '+' : '') + '$' + fmt(tp);
-  $('d-tpnl').className = 'metric-val ' + pnlCls(tp);
+  $('d-tpnl').className = 'mv ' + pnlCls(tp);
   $('d-tpnl-pct').textContent = (tp >= 0 ? '+' : '') + fmtPct(tp / 10000);
   $('d-wr').textContent = fmtPct(s.win_rate || 0);
   $('d-trades').textContent = (s.total_trades || 0) + ' trades';
-  $('d-wins').textContent = s.wins || 0;
-  $('d-losses').textContent = s.losses || 0;
+  $('d-wins').textContent = s.wins || 0; $('d-losses').textContent = s.losses || 0;
   $('d-dd').textContent = fmtPct(s.max_drawdown || 0);
   $('d-dd-bar').style.width = Math.min((s.max_drawdown || 0) / 0.20 * 100, 100) + '%';
-  $('d-sharpe').textContent = fmt(s.sharpe);
-  $('d-pf').textContent = fmt(s.profit_factor);
+  $('d-sharpe').textContent = fmt(s.sharpe); $('d-pf').textContent = fmt(s.profit_factor);
 
   // Row 2
   const dp = s.daily_pnl || 0;
   $('d-daily').textContent = (dp >= 0 ? '+' : '') + '$' + fmt(dp);
-  $('d-daily').className = 'metric-val small ' + pnlCls(dp);
+  $('d-daily').className = 'mv ' + pnlCls(dp);
   $('d-daily-bar').style.width = Math.min(Math.abs(dp) / 10000 / 0.05 * 100, 100) + '%';
-  $('d-daily-bar').className = 'prog-fill ' + (dp >= 0 ? 'g' : 'r');
+  $('d-daily-bar').className = 'pf ' + (dp >= 0 ? 'g' : 'r');
   const wp = s.weekly_pnl || 0;
   $('d-weekly').textContent = (wp >= 0 ? '+' : '') + '$' + fmt(wp);
-  $('d-weekly').className = 'metric-val small ' + pnlCls(wp);
+  $('d-weekly').className = 'mv ' + pnlCls(wp);
   $('d-weekly-bar').style.width = Math.min(Math.abs(wp) / 10000 / 0.10 * 100, 100) + '%';
-  $('d-weekly-bar').className = 'prog-fill ' + (wp >= 0 ? 'g' : 'r');
-  $('d-avg-conf').textContent = fmt(s.avg_confluence || 0, 0);
-  const lastConf = trades.length ? (trades[trades.length - 1].confluence_score || 0) : 0;
-  $('d-last-conf').textContent = 'last ' + fmt(lastConf, 0);
-  $('d-gross-p').textContent = '$' + fmt(s.gross_profit);
-  $('d-gross-l').textContent = '$' + fmt(s.gross_loss);
-  $('d-pos-val').textContent = s.open_positions || 0;
-  $('d-pos-count').textContent = (s.open_positions || 0) + ' / 1';
-  $('d-pos-bar').style.width = ((s.open_positions || 0) / 1 * 100) + '%';
+  $('d-weekly-bar').className = 'pf ' + (wp >= 0 ? 'g' : 'r');
+  $('d-ac').textContent = fmt(s.avg_confluence || 0, 0);
+  const lc = trades.length ? (trades[trades.length - 1].confluence_score || 0) : 0;
+  $('d-lc').textContent = 'last ' + fmt(lc, 0);
+  $('d-gp').textContent = '$' + fmt(s.gross_profit); $('d-gl').textContent = '$' + fmt(s.gross_loss);
+  $('d-pv').textContent = s.open_positions || 0;
+  $('d-pc').textContent = (s.open_positions || 0) + ' / 1';
+  $('d-pb').style.width = ((s.open_positions || 0) * 100) + '%';
 
-  // Row 3: Equity
+  // Row 3
   const eq = d.equity_curve || [];
-  $('d-eq-count').textContent = eq.length + ' trades';
-  drawEquity(eq);
-
-  // Row 3: Strategies
+  $('d-ec').textContent = eq.length + ' trades';
+  drawEq(eq);
   const strats = s.strategies || {};
-  const stratEntries = Object.entries(strats);
-  if (stratEntries.length === 0) {
-    $('d-strategies').innerHTML = '<div class="row-item"><span class="row-label">No trades yet</span></div>';
-  } else {
-    $('d-strategies').innerHTML = stratEntries.map(([name, st]) => {
-      const wr = st.trades > 0 ? st.wins / st.trades : 0;
-      return `<div class="row-item">
-        <span class="row-label">${name}</span>
-        <span class="row-val ${st.pnl >= 0 ? 'g' : 'r'}">${st.trades}tr / ${fmtPct(wr)} / $${fmt(st.pnl)}</span>
-      </div>`;
-    }).join('');
-  }
+  const se = Object.entries(strats);
+  $('d-strat').innerHTML = se.length === 0
+    ? '<div class="ri"><span class="ri-l">No trades yet</span></div>'
+    : se.map(([n, st]) => {
+        const wr = st.trades > 0 ? st.wins / st.trades : 0;
+        return `<div class="ri"><span class="ri-l">${n}</span><span class="ri-v ${st.pnl >= 0 ? 'g' : 'r'}">${st.trades}tr / ${fmtPct(wr)} / $${fmt(st.pnl)}</span></div>`;
+      }).join('');
 
-  // Row 4: Confluence
-  drawConf(trades);
+  // Row 4
+  drawCf(trades);
+  $('d-rd').textContent = fmtPct(Math.abs(dp) / 10000);
+  $('d-rdb').style.width = Math.min(Math.abs(dp) / 10000 / 0.05 * 100, 100) + '%';
+  $('d-rw').textContent = fmtPct(Math.abs(wp) / 10000);
+  $('d-rwb').style.width = Math.min(Math.abs(wp) / 10000 / 0.10 * 100, 100) + '%';
+  const ddp = s.max_drawdown || 0;
+  $('d-rdd').textContent = fmtPct(ddp) + ' / 20%';
+  $('d-rddb').style.width = Math.min(ddp / 0.20 * 100, 100) + '%';
+  $('d-rt').textContent = s.total_limit_hit ? 'LIMIT HIT' : 'active';
+  $('d-rt').className = 'ri-v ' + (s.total_limit_hit ? 'r' : 'g');
 
-  // Row 4: Risk
-  const ddPct = s.max_drawdown || 0;
-  $('d-risk-daily').textContent = fmtPct(Math.abs(dp) / 10000);
-  $('d-risk-daily-bar').style.width = Math.min(Math.abs(dp) / 10000 / 0.05 * 100, 100) + '%';
-  $('d-risk-weekly').textContent = fmtPct(Math.abs(wp) / 10000);
-  $('d-risk-weekly-bar').style.width = Math.min(Math.abs(wp) / 10000 / 0.10 * 100, 100) + '%';
-  $('d-risk-dd').textContent = fmtPct(ddPct) + ' / 20%';
-  $('d-risk-dd-bar').style.width = Math.min(ddPct / 0.20 * 100, 100) + '%';
-  $('d-risk-total').textContent = s.total_limit_hit ? 'LIMIT HIT' : 'active';
-  $('d-risk-total').className = 'row-val ' + (s.total_limit_hit ? 'r' : 'g');
+  // Row 5: Trades
+  $('d-tc').textContent = trades.length + ' trades';
+  $('d-tb').innerHTML = trades.length === 0
+    ? '<tr><td colspan="10" style="text-align:center;color:var(--text-dim);padding:20px">No trades yet</td></tr>'
+    : trades.slice(-50).reverse().map(t => {
+        const side = t.side === 'long' ? '<span class="badge long">LONG</span>' : '<span class="badge short">SHORT</span>';
+        const pnl = t.pnl || 0;
+        const conf = t.confluence_score || 0;
+        const cb = conf >= 85 ? 'premium' : conf >= 70 ? 'good' : conf >= 50 ? 'marginal' : 'reject';
+        const time = t.timestamp ? new Date(t.timestamp).toLocaleTimeString() : '—';
+        return `<tr><td>${time}</td><td>${t.symbol || '—'}</td><td>${side}</td><td>$${fmt(t.entry_price || 0)}</td><td>$${fmt(t.close_price || t.entry_price || 0)}</td><td>${fmt(t.size || 0, 4)}</td><td class="${pnl >= 0 ? 'ri-v g' : 'ri-v r'}">$${fmt(pnl)}</td><td>${t.exit_reason || 'open'}</td><td>${t.strategy || '—'}</td><td><span class="badge ${cb}">${conf}</span></td></tr>`;
+      }).join('');
 
-  // Row 5: Trade table
-  $('d-trade-count').textContent = trades.length + ' trades';
-  if (trades.length === 0) {
-    $('d-trade-body').innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--text-dim);padding:24px">No trades yet</td></tr>';
-  } else {
-    $('d-trade-body').innerHTML = trades.slice(-50).reverse().map(t => {
-      const side = t.side === 'long' ? '<span class="badge long">LONG</span>' : '<span class="badge short">SHORT</span>';
-      const pnl = t.pnl || 0;
-      const conf = t.confluence_score || 0;
-      let confBadge = conf >= 85 ? 'premium' : conf >= 70 ? 'good' : conf >= 50 ? 'marginal' : 'reject';
-      const time = t.timestamp ? new Date(t.timestamp).toLocaleTimeString() : '—';
-      return `<tr>
-        <td>${time}</td><td>${t.symbol || '—'}</td><td>${side}</td>
-        <td>$${fmt(t.entry_price || 0)}</td><td>$${fmt(t.close_price || t.entry_price || 0)}</td>
-        <td>${fmt(t.size || 0, 4)}</td>
-        <td class="${pnl >= 0 ? 'row-val g' : 'row-val r'}">$${fmt(pnl)}</td>
-        <td>${t.exit_reason || 'open'}</td><td>${t.strategy || '—'}</td>
-        <td><span class="badge ${confBadge}">${conf}</span></td>
-      </tr>`;
-    }).join('');
-  }
-
-  // Row 6: Reflection
+  // Row 6
   const refs = d.reflection_log || [];
-  if (refs.length === 0) {
-    $('d-reflection').innerHTML = '<div class="row-item"><span class="row-label">No reflections yet</span></div>';
-  } else {
-    $('d-reflection').innerHTML = refs.slice().reverse().map(r => {
-      const time = r.timestamp ? new Date(r.timestamp).toLocaleString() : '—';
-      return `<div class="row-item" style="flex-direction:column;align-items:flex-start;gap:2px">
-        <div style="display:flex;justify-content:space-between;width:100%">
-          <span class="row-label">${time}</span>
-          <span class="row-val ${r.score >= 0 ? 'g' : 'r'}">Score: ${fmt(r.score)}</span>
-        </div>
-        <div style="font-size:0.75rem;color:var(--text)">${r.description || 'No change'}</div>
-      </div>`;
-    }).join('');
-  }
-
-  // Row 6: Evolution
+  $('d-ref').innerHTML = refs.length === 0
+    ? '<div class="ri"><span class="ri-l">No reflections yet</span></div>'
+    : refs.slice().reverse().map(r => {
+        const time = r.timestamp ? new Date(r.timestamp).toLocaleString() : '—';
+        return `<div class="ri" style="flex-direction:column;align-items:flex-start;gap:2px"><div style="display:flex;justify-content:space-between;width:100%"><span class="ri-l">${time}</span><span class="ri-v ${r.score >= 0 ? 'g' : 'r'}">Score: ${fmt(r.score)}</span></div><div style="font-size:0.75rem;color:var(--text)">${r.description || 'No change'}</div></div>`;
+      }).join('');
   const hist = d.history || [];
-  if (hist.length === 0) {
-    $('d-evolution').innerHTML = '<div class="row-item"><span class="row-label">No strategy changes yet</span></div>';
-  } else {
-    $('d-evolution').innerHTML = hist.slice().reverse().map(h => {
-      return `<div class="row-item">
-        <span class="row-label">v${h.version || '?'}</span>
-        <span class="row-val">${h.entry?.indicator || '?'} @ ${h.entry?.threshold || '?'}</span>
-      </div>`;
-    }).join('');
-  }
+  $('d-evo').innerHTML = hist.length === 0
+    ? '<div class="ri"><span class="ri-l">No strategy changes yet</span></div>'
+    : hist.slice().reverse().map(h => `<div class="ri"><span class="ri-l">v${h.version || '?'}</span><span class="ri-v">${h.entry?.indicator || '?'} @ ${h.entry?.threshold || '?'}</span></div>`).join('');
 
-  // Row 7: Config
-  $('d-strategy').textContent = JSON.stringify(d.strategy || {}, null, 2);
-  $('d-goal').textContent = JSON.stringify(d.goal || {}, null, 2);
+  // Row 7
+  $('d-st').textContent = JSON.stringify(d.strategy || {}, null, 2);
+  $('d-go').textContent = JSON.stringify(d.goal || {}, null, 2);
 
-  // Cover stats
-  updateCover(d);
+  // Hero stats
+  $('hs-bal').textContent = '$' + fmt(10000 + tp);
+  $('hs-pnl').textContent = (tp >= 0 ? '+' : '') + '$' + fmt(tp);
+  $('hs-pnl').style.color = tp >= 0 ? 'var(--accent)' : 'var(--red)';
+  $('hs-wr').textContent = fmtPct(s.win_rate || 0);
+  $('hs-dd').textContent = fmtPct(s.max_drawdown || 0);
 }
 
 /* ── Charts ── */
-function drawEquity(eq) {
-  const canvas = $('chart-equity');
-  const ctx = canvas.getContext('2d');
-  const wrap = canvas.parentElement;
-  canvas.width = wrap.offsetWidth; canvas.height = wrap.offsetHeight;
-  const w = canvas.width, h = canvas.height, pad = 30;
+function drawEq(eq) {
+  const c = $('c-eq'), ctx = c.getContext('2d'), w = c.parentElement.offsetWidth, h = c.parentElement.offsetHeight;
+  c.width = w; c.height = h;
   ctx.clearRect(0, 0, w, h);
-  if (eq.length < 2) {
-    ctx.fillStyle = '#333'; ctx.font = '12px Space Grotesk'; ctx.textAlign = 'center';
-    ctx.fillText('Waiting for trades...', w / 2, h / 2);
-    ctx.textAlign = 'left';
-    return;
-  }
-  const vals = eq.map(e => e.equity);
-  const min = Math.min(...vals) * 0.999, max = Math.max(...vals) * 1.001;
-  const range = max - min || 1;
-  // Grid
+  if (eq.length < 2) { ctx.fillStyle = '#333'; ctx.font = '12px Space Grotesk'; ctx.textAlign = 'center'; ctx.fillText('Waiting for trades...', w / 2, h / 2); ctx.textAlign = 'left'; return; }
+  const vals = eq.map(e => e.equity), mn = Math.min(...vals) * 0.999, mx = Math.max(...vals) * 1.001, rng = mx - mn || 1, pad = 24;
   ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 1;
   for (let i = 0; i <= 4; i++) { const y = pad + (h - 2 * pad) * i / 4; ctx.beginPath(); ctx.moveTo(pad, y); ctx.lineTo(w - pad, y); ctx.stroke(); }
-  // Line
   ctx.beginPath(); ctx.strokeStyle = '#3d8bff'; ctx.lineWidth = 2;
-  eq.forEach((e, i) => {
-    const x = pad + (w - 2 * pad) * i / (eq.length - 1);
-    const y = h - pad - (e.equity - min) / range * (h - 2 * pad);
-    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-  });
+  eq.forEach((e, i) => { const x = pad + (w - 2 * pad) * i / (eq.length - 1), y = h - pad - (e.equity - mn) / rng * (h - 2 * pad); i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); });
   ctx.stroke();
-  // Fill
   ctx.lineTo(w - pad, h - pad); ctx.lineTo(pad, h - pad); ctx.closePath();
-  const grad = ctx.createLinearGradient(0, pad, 0, h - pad);
-  grad.addColorStop(0, 'rgba(61,139,255,0.15)'); grad.addColorStop(1, 'rgba(61,139,255,0)');
-  ctx.fillStyle = grad; ctx.fill();
-  // Labels
-  ctx.fillStyle = '#555'; ctx.font = '10px JetBrains Mono';
-  ctx.fillText('$' + fmt(max), 4, pad + 10);
-  ctx.fillText('$' + fmt(min), 4, h - pad + 4);
+  const g = ctx.createLinearGradient(0, pad, 0, h - pad); g.addColorStop(0, 'rgba(61,139,255,0.12)'); g.addColorStop(1, 'rgba(61,139,255,0)');
+  ctx.fillStyle = g; ctx.fill();
+  ctx.fillStyle = '#555'; ctx.font = '10px JetBrains Mono'; ctx.fillText('$' + fmt(mx), 4, pad + 10); ctx.fillText('$' + fmt(mn), 4, h - pad + 4);
 }
 
-function drawConf(trades) {
-  const canvas = $('chart-conf');
-  const ctx = canvas.getContext('2d');
-  const wrap = canvas.parentElement;
-  canvas.width = wrap.offsetWidth; canvas.height = wrap.offsetHeight;
-  const w = canvas.width, h = canvas.height, pad = 30;
+function drawCf(trades) {
+  const c = $('c-cf'), ctx = c.getContext('2d'), w = c.parentElement.offsetWidth, h = c.parentElement.offsetHeight;
+  c.width = w; c.height = h;
   ctx.clearRect(0, 0, w, h);
-  const confs = trades.map(t => t.confluence_score || 0).filter(c => c > 0);
-  if (confs.length === 0) {
-    ctx.fillStyle = '#333'; ctx.font = '12px Space Grotesk'; ctx.textAlign = 'center';
-    ctx.fillText('No confluence data yet', w / 2, h / 2);
-    ctx.textAlign = 'left';
-    return;
-  }
+  const confs = trades.map(t => t.confluence_score || 0).filter(v => v > 0);
+  if (!confs.length) { ctx.fillStyle = '#333'; ctx.font = '12px Space Grotesk'; ctx.textAlign = 'center'; ctx.fillText('No confluence data yet', w / 2, h / 2); ctx.textAlign = 'left'; return; }
   const bins = new Array(10).fill(0);
-  confs.forEach(c => { const idx = Math.min(Math.floor(c / 10), 9); bins[idx]++; });
-  const maxBin = Math.max(...bins) || 1;
-  const barW = (w - 2 * pad) / 10 - 4;
-  bins.forEach((count, i) => {
-    const x = pad + i * (barW + 4);
-    const barH = (count / maxBin) * (h - 2 * pad);
-    const y = h - pad - barH;
-    const color = i >= 8 ? '#a855f7' : i >= 7 ? '#3d8bff' : i >= 5 ? '#c5a059' : '#ff4d4d';
-    ctx.fillStyle = color; ctx.fillRect(x, y, barW, barH);
+  confs.forEach(v => { bins[Math.min(Math.floor(v / 10), 9)]++; });
+  const mx = Math.max(...bins) || 1, bw = (w - 48) / 10 - 4, pad = 24;
+  bins.forEach((n, i) => {
+    const x = pad + i * (bw + 4), bh = (n / mx) * (h - 2 * pad), y = h - pad - bh;
+    ctx.fillStyle = i >= 8 ? '#a855f7' : i >= 7 ? '#3d8bff' : i >= 5 ? '#c5a059' : '#ff4d4d';
+    ctx.fillRect(x, y, bw, bh);
   });
   ctx.fillStyle = '#555'; ctx.font = '9px JetBrains Mono';
-  for (let i = 0; i < 10; i++) ctx.fillText(i * 10, pad + i * (barW + 4), h - pad + 12);
+  for (let i = 0; i < 10; i++) ctx.fillText(i * 10, pad + i * (bw + 4), h - pad + 12);
 }
 
-window.addEventListener('resize', () => {
-  if ($('dashboard').classList.contains('active')) refresh();
-});
+window.addEventListener('resize', () => { if (pollTimer) refresh(); });
+
+/* ── Auto-start ── */
+if (window.location.hash === '#dashboard') {
+  startPolling();
+} else {
+  // Try to load data once for hero stats, start polling if on dashboard section
+  Promise.all([fetch('/api/data'), fetch('/api/health')])
+    .then(([r1, r2]) => Promise.all([r1.json(), r2.json()]))
+    .then(([d, h]) => { if (d && d.stats) { renderLive(d, h); startPolling(); } })
+    .catch(() => { renderOffline(); });
+}
 </script>
 </body>
 </html>
