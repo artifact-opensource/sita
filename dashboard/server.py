@@ -637,6 +637,15 @@ window.addEventListener('resize',()=>refresh());
 </html>"""
 
 
+def _get_index_html() -> str:
+    """Load index.html from project root."""
+    index_path = Path(__file__).parent.parent / "index.html"
+    if index_path.exists():
+        return index_path.read_text()
+    # Fallback: serve a minimal page
+    return "<html><body><h1>SITA Dashboard</h1><p>index.html not found. Place it at project root.</p><a href='/api/data'>API</a></body></html>"
+
+
 def create_app():
     """Create Flask/FastAPI dashboard app."""
     try:
@@ -650,11 +659,30 @@ def create_app():
 
         @app.get("/", response_class=HTMLResponse)
         async def index():
-            return DASHBOARD_HTML
+            return _get_index_html()
 
         @app.get("/api/data")
         async def api_data():
             return data_provider.get_all()
+
+        @app.get("/api/health")
+        async def api_health():
+            """Check if SITA engine is running by looking for recent state updates."""
+            import os
+            engine_running = False
+            try:
+                trades_path = STATE_DIR / "trades.jsonl"
+                if trades_path.exists():
+                    stat = os.stat(trades_path)
+                    # If trades file was modified in last 120s, engine is likely running
+                    engine_running = (datetime.now(timezone.utc).timestamp() - stat.st_mtime) < 120
+            except Exception:
+                pass
+            return {
+                "status": "ok",
+                "engine": "running" if engine_running else "offline",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
 
         @app.get("/api/trades")
         async def api_trades():
@@ -701,6 +729,7 @@ def run_dashboard(host: str = DASHBOARD_HOST, port: int = DASHBOARD_PORT):
         import threading
 
         data_provider = DashboardData()
+        index_html = _get_index_html()
 
         class Handler(BaseHTTPRequestHandler):
             def do_GET(self):
@@ -708,12 +737,17 @@ def run_dashboard(host: str = DASHBOARD_HOST, port: int = DASHBOARD_PORT):
                     self.send_response(200)
                     self.send_header("Content-Type", "text/html")
                     self.end_headers()
-                    self.wfile.write(DASHBOARD_HTML.encode())
+                    self.wfile.write(index_html.encode())
                 elif self.path == "/api/data":
                     self.send_response(200)
                     self.send_header("Content-Type", "application/json")
                     self.end_headers()
                     self.wfile.write(json.dumps(data_provider.get_all(), default=str).encode())
+                elif self.path == "/api/health":
+                    self.send_response(200)
+                    self.send_header("Content-Type", "application/json")
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"status": "ok", "timestamp": datetime.now(timezone.utc).isoformat()}).encode())
                 else:
                     self.send_response(404)
                     self.end_headers()
