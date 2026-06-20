@@ -10,6 +10,7 @@ SITA (Self-Improving Trading Agent) is a Linux-native, fully autonomous trading 
 - **Risk-first**: Multiple circuit breakers, position limits, and drawdown controls
 - **Exchange-agnostic**: ccxt abstraction supports 105+ exchanges out of the box
 - **Paper-first**: Safe by default; live trading requires explicit opt-in
+- **Flat-file state**: No database dependency; all state is human-readable YAML/JSONL
 
 ## Pipeline Architecture
 
@@ -83,6 +84,19 @@ The signal engine implements 7 distinct trading strategies, each optimized for d
 
 **Regime-Aware Filtering**: The signal engine receives regime recommendations from the RegimeDetector and filters signals accordingly. For example, short signals are blocked during strong uptrends.
 
+**Signal Output Format**:
+```python
+@dataclass
+class Signal:
+    primary: StrategySignal      # Primary strategy signal
+    fallback: StrategySignal     # Fallback aggregator signal
+    direction: SignalDirection   # long | short | neutral
+    confidence: float            # 0.0 - 1.0
+    strategy_name: str           # Name of the winning strategy
+    has_signal: bool             # Whether any signal exceeded threshold
+    summary: str                 # Human-readable summary
+```
+
 ### 2. Confluence Filter (`sita/confluence/`)
 
 Every signal must pass through a 9-dimension quality gate. Each dimension is scored 0-1 and weighted to produce a final score 0-100:
@@ -105,12 +119,26 @@ Every signal must pass through a 9-dimension quality gate. Each dimension is sco
 - **20-49 (Poor)**: Minimum size (0.3x), wait for pullback
 - **<20 (Reject)**: No trade
 
+**Confluence Output Format**:
+```python
+@dataclass
+class ConfluenceResult:
+    score: int                   # 0-100
+    quality: str                 # premium | good | marginal | poor | reject
+    position_mult: float         # 0.3 - 1.0
+    should_enter: bool           # Whether to proceed to risk check
+    wait: bool                   # Whether to wait for better entry
+    dimensions: Dict[str, float] # Per-dimension scores
+    summary: str                 # Human-readable summary
+```
+
 ### 3. Risk Manager (`sita/risk/`)
 
 The risk manager implements a **%R (Percent Risk)** position sizing model:
 
 ```
-position_size = (balance × risk_pct × confluence_mult) / sl_distance
+risk_amount = balance × risk_pct × confluence_mult
+position_size = risk_amount / sl_distance
 ```
 
 **Position Sizing Rules:**
@@ -141,6 +169,19 @@ position_size = (balance × risk_pct × confluence_mult) / sl_distance
 - Stop Loss: ATR-based, 1.5x ATR from entry
 - Take Profit: Risk:Reward based, default 1:2 (TP = 2 × SL distance)
 
+**Risk Decision Output:**
+```python
+@dataclass
+class RiskDecision:
+    action: RiskAction           # APPROVED | REDUCED | REJECTED | LOCKED
+    position_size: float         # Final position size
+    stop_loss_price: float       # Calculated SL
+    take_profit_price: float     # Calculated TP
+    risk_amount: float           # Actual risk in USDT
+    reasons: List[str]           # Decision reasoning
+    warnings: List[str]          # Non-fatal warnings
+```
+
 ### 4. Exchange Executor (`sita/execution/`)
 
 The execution layer wraps ccxt to provide a unified interface for:
@@ -160,6 +201,22 @@ The execution layer wraps ccxt to provide a unified interface for:
 - Connects to real exchange via ccxt
 - Requires API key/secret and `SITA_I_ACCEPT_RISK=true`
 - Enforces exchange-specific minimums (e.g., Binance $5 notional minimum)
+- Supports both one-way and hedge position modes
+
+**Hedge Mode Support:**
+When Binance Futures is in hedge mode (dual-side position), all orders include `positionSide` (LONG/SHORT) and SL/TP orders include `reduceOnly`:
+
+```python
+# Entry order
+order = exchange.create_market_order(symbol, side, size, None, {"positionSide": "LONG"})
+
+# SL order
+exchange.create_order(symbol, "stop_market", "sell", size, None, {
+    "positionSide": "LONG",
+    "reduceOnly": True,
+    "stopPrice": sl_price,
+})
+```
 
 **Supported Exchanges (105+):**
 - Pre-configured: Binance (futures), Bybit (linear), OKX (swap), Kraken (spot)
@@ -181,6 +238,23 @@ Partial closes at predetermined targets:
 - 2R: Close 25% of position
 - 3R: Close remaining 50%
 
+**Position State:**
+```python
+@dataclass
+class Position:
+    symbol: str
+    side: str                    # long | short
+    size: float
+    entry_price: float
+    stop_loss: float
+    take_profit: float
+    order_id: str
+    timestamp: str
+    highest_profit: float        # For trailing stop
+    breakeven_triggered: bool
+    partial_closes: List[Dict]   # Record of partial closes
+```
+
 ### 6. Regime Detector (`sita/regime/`)
 
 Classifies the current market into one of 5 regimes using ADX, RSI, and price structure:
@@ -193,7 +267,14 @@ Classifies the current market into one of 5 regimes using ADX, RSI, and price st
 | Volatile | ATR spike | Wide ranges, erratic moves | Reduce size / wait |
 | Reversal | RSI extreme + divergence | Potential trend change | Mean Reversion |
 
-Confidence levels (high/medium/low) are assigned based on indicator agreement.
+Confidence levels (high/medium/low) are assigned based on indicator agreement. Low confidence regimes cause the symbol to be skipped for that cycle.
+
+**Regime Detection Algorithm:**
+1. Compute ADX (14-period) — measures trend strength
+2. Compute RSI (14-period) — measures momentum
+3. Compute EMA slope (21-period) — measures trend direction
+4. Classify regime based on ADX/RSI thresholds
+5. Assign confidence based on indicator agreement
 
 ### 7. Liquidity Analyzer (`sita/regime/`)
 
@@ -203,6 +284,13 @@ Identifies key liquidity zones that act as magnets for price:
 - **Fair Value Gaps (FVG)**: Imbalance zones from aggressive moves
 - **Volume Nodes**: Price levels with historically high volume
 - **Liquidity Bias**: Bullish/bearish/neutral based on zone distribution
+
+**Liquidity Analysis Algorithm:**
+1. Scan recent price action for swing highs/lows
+2. Identify clusters of similar price levels (liquidity pools)
+3. Detect FVGs (3-candle imbalance patterns)
+4. Compute volume profile nodes
+5. Determine net liquidity bias
 
 ### 8. Reflection Engine (`sita/reflection/`)
 
@@ -219,16 +307,22 @@ The self-improvement loop that makes SITA "self-improving":
 6. **Log**: Record hypothesis with reasoning in hypotheses.jsonl
 
 **Hypothesis Types:**
-- Disable consistently losing symbols
-- Adjust SL tightness (±0.5%)
-- Change entry indicator threshold
-- Adjust position size multiplier
-- Allow/disallow directional bias
-- Switch primary strategy type
+
+| Type | Trigger | Action |
+|------|---------|--------|
+| Disable symbol | Symbol loses > 3 consecutive trades | Add to `disabled_symbols` list |
+| Tighten SL | Win rate < 40% | Reduce ATR multiplier from 1.5 to 1.2 |
+| Loosen SL | Win rate > 70% with early SL hits | Increase ATR multiplier from 1.5 to 2.0 |
+| Adjust RSI threshold | RSI entries consistently wrong direction | Shift entry threshold by ±5 |
+| Change position size | Drawdown exceeds target | Reduce base size by 25% |
+| Switch strategy | Current strategy underperforms fallback | Promote fallback to primary |
+| Allow both directions | Strong trend in both directions | Enable long + short simultaneously |
 
 **Modes:**
 - **Deterministic Fallback**: Rule-based, no LLM required. Uses performance heuristics.
 - **Hermes LLM**: Natural language reasoning for complex strategy evolution (production mode)
+
+**One-Variable Rule**: Only ONE parameter changes per reflection cycle. This is the scientific method — isolate variables to understand causation.
 
 ### 9. Discord Notifier (`sita/journal/`)
 
@@ -247,6 +341,22 @@ Posts rich embed notifications to Discord channels:
 **Delivery Methods:**
 1. **Webhook** (preferred): Simple POST to Discord webhook URL
 2. **Bot API** (fallback): Uses bot token + channel ID for thread creation
+
+**Embed Format:**
+```python
+embed = {
+    "title": "📈 Trade: BTC/USDT:USDT",
+    "description": "**LONG** position opened",
+    "color": 0x00FF00,  # Green for long
+    "fields": [
+        {"name": "Size", "value": "0.001", "inline": True},
+        {"name": "Entry", "value": "63112.00", "inline": True},
+        {"name": "Stop Loss", "value": "61850.00", "inline": True},
+        {"name": "Take Profit", "value": "65636.00", "inline": True},
+    ],
+    "timestamp": "2026-06-19T23:26:39Z",
+}
+```
 
 ### 10. Dashboard (`sita/dashboard/`)
 
@@ -342,7 +452,20 @@ Configuration is loaded in this order (later overrides earlier):
 3. **`.env` file** (loaded before any config import via `load_dotenv()`)
 4. **Runtime config dict** passed to SITA constructor
 
-**Critical**: `load_dotenv()` runs BEFORE any config module imports because config reads `os.getenv()` at module level.
+**Critical**: `load_dotenv()` runs BEFORE any config module imports because config reads `os.getenv()` at module level. This is implemented in `__main__.py`:
+
+```python
+# Load .env BEFORE any config imports
+_env_path = Path("/home/adam/Projects/sita/.env")
+if _env_path.exists():
+    with open(_env_path) as _f:
+        for _line in _f:
+            _line = _line.strip()
+            if _line and not _line.startswith('#') and '=' in _line:
+                _k, _v = _line.split('=', 1)
+                _v = _v.strip().strip("'\"")
+                os.environ.setdefault(_k.strip(), _v)
+```
 
 ## Safety Architecture
 
@@ -356,6 +479,8 @@ SITA has multiple layers of protection:
 6. **Recovery mode**: Auto risk reduction after drawdown
 7. **Version control**: Every strategy change is saved with rollback capability
 8. **Audit trail**: Complete trade + hypothesis history
+9. **Minimum notional enforcement**: Prevents exchange rejection errors
+10. **Hedge mode compatibility**: Correct position side on all orders
 
 ## Deployment
 
@@ -380,6 +505,22 @@ railway up
 
 Set environment variables in Railway dashboard for API keys and mode.
 
+### Process Management
+
+For production deployments, use a process manager:
+
+```bash
+# systemd (recommended)
+sudo cp sita.service /etc/systemd/system/
+sudo systemctl enable sita
+sudo systemctl start sita
+
+# Or screen/tmux
+screen -S sita
+python3 -m sita run
+# Ctrl+A, D to detach
+```
+
 ## Performance Characteristics
 
 From dry-run testing (38 trades, $10K paper):
@@ -389,3 +530,58 @@ From dry-run testing (38 trades, $10K paper):
 - Strategy evolved: v01 → v07 in 5 reflection cycles
 - Best performers: SOL shorts, BTC trend trades
 - Disabled by reflection: ETH (consistent losses)
+
+## Module Dependency Graph
+
+```
+__main__.py
+    ├── config.py (no dependencies)
+    ├── signal/__init__.py (depends on config)
+    ├── confluence/__init__.py (depends on config)
+    ├── risk/__init__.py (depends on config)
+    ├── execution/__init__.py (depends on config, ccxt)
+    ├── position/__init__.py (depends on config)
+    ├── reflection/__init__.py (depends on config, risk)
+    ├── regime/__init__.py (depends on config)
+    └── journal/__init__.py (depends on config, urllib)
+```
+
+## File Structure
+
+```
+sita/
+├── __main__.py              # CLI entry point (run, setup, status, reflect, dashboard)
+├── __init__.py              # Package init
+├── config.py                # All constants, thresholds, exchange configs, risk defaults
+├── signal/
+│   └── __init__.py          # 7 strategies + fallback aggregator
+├── confluence/
+│   └── __init__.py          # 9-dimension confluence scorer
+├── risk/
+│   └── __init__.py          # Position sizing, SL/TP, circuit breakers, recovery
+├── execution/
+│   └── __init__.py          # ccxt wrapper, paper/live execution, hedge mode
+├── position/
+│   └── __init__.py          # Position tracking, BE, trailing, profit profiling
+├── reflection/
+│   └── __init__.py          # Self-improvement loop, hypothesis generation
+├── regime/
+│   └── __init__.py          # Regime detection, liquidity analysis
+├── journal/
+│   └── __init__.py          # Discord notifier (webhook + bot API)
+├── setup.py                 # Interactive CLI setup wizard
+├── dashboard/
+│   └── server.py            # Web dashboard (port 8090)
+├── tests/
+│   └── test_pipeline.py     # Integration tests
+├── docs/
+│   ├── ARCHITECTURE.md      # This file
+│   ├── OPERATIONS.md        # Operations guide
+│   └── EXCHANGES.md         # Supported exchanges reference
+├── Dockerfile               # Docker build
+├── .env.example             # Environment template
+├── .gitignore               # Python gitignore
+├── LICENSE                  # AGPL-3.0
+├── README.md                # Main documentation
+└── setup.py                 # Package setup
+```

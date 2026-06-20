@@ -14,6 +14,20 @@ Modules:
     adapters    — Backtesting engine
 """
 
+import os
+from pathlib import Path
+
+# Load .env BEFORE config import (config reads os.getenv at module level)
+_env_path = Path(__file__).parent.parent / ".env"
+if _env_path.exists():
+    with open(_env_path) as _f:
+        for _line in _f:
+            _line = _line.strip()
+            if _line and not _line.startswith("#") and "=" in _line:
+                _k, _v = _line.split("=", 1)
+                _v = _v.strip().strip("'\"")
+                os.environ.setdefault(_k.strip(), _v)
+
 from .config import VERSION, CODENAME
 
 __version__ = VERSION

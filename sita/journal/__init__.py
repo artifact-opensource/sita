@@ -200,6 +200,8 @@ class DiscordNotifier:
         channel_id = self.channels.get(channel_key)
         webhook_url = self.channels.get("webhook_url")
 
+        _ua = "DiscordBot (https://github.com/artifact-opensource/sita, 1.0.0)"
+
         # Prefer webhook for simple posting
         if webhook_url:
             try:
@@ -207,7 +209,7 @@ class DiscordNotifier:
                 req = urllib.request.Request(
                     webhook_url,
                     data=payload,
-                    headers={"Content-Type": "application/json"},
+                    headers={"Content-Type": "application/json", "User-Agent": _ua},
                     method="POST",
                 )
                 resp = urllib.request.urlopen(req, timeout=10)
@@ -227,6 +229,7 @@ class DiscordNotifier:
                     headers={
                         "Authorization": f"Bot {self.token}",
                         "Content-Type": "application/json",
+                        "User-Agent": _ua,
                     },
                     method="POST",
                 )

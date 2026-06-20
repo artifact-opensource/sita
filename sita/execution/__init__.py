@@ -115,7 +115,7 @@ class ExchangeExecutor:
 
         try:
             balance = self.exchange.fetch_balance()
-            return float(balance.get("free", {}).get(currency, 0.0))
+            return float(balance.get("total", {}).get(currency, 0.0))
         except Exception as e:
             logger.error(f"Balance fetch failed: {e}")
             return 0.0
@@ -215,6 +215,21 @@ class ExchangeExecutor:
         try:
             # Determine position side for hedge mode
             position_side = "LONG" if side == "buy" else "SHORT"
+
+            # Enforce minimum notional (Binance Futures requires >= $20)
+            min_notional = SUPPORTED_EXCHANGES.get(self.exchange_id, {}).get("min_notional", 20.0)
+            order_price = price if price > 0 else self.get_current_price(symbol)
+            notional = size * order_price
+            if notional < min_notional:
+                min_size = min_notional / order_price
+                # Only scale up if the resulting position is <= 35% of account
+                max_size = (self.get_balance() * 0.35) / order_price
+                if min_size <= max_size:
+                    logger.info(f"Position size {size} too small (notional ${notional:.2f} < ${min_notional}), scaling up to {min_size:.4f}")
+                    size = min_size
+                else:
+                    logger.info(f"Order skipped: notional ${notional:.2f} < ${min_notional} min, scaled size {min_size:.4f} exceeds 35% cap")
+                    return OrderResult(success=False, error=f"Notional too small (${notional:.2f} < ${min_notional}), account too small to scale", timestamp=timestamp)
 
             # Build order params with position side for hedge mode
             order_params = {"positionSide": position_side}
