@@ -1,6 +1,6 @@
 # SITA — Self-Improving Trading Agent
 
-> **Codename: SITA 🔱** · Linux-native · No MT5 · No Wine · No Windows · AGPL-3.0
+> **Codename: SITA 🔱** · Linux-native · No MT5 · No Wine · No Windows · MIT License
 
 SITA is a fully autonomous, self-improving trading agent that runs on Linux and connects directly to cryptocurrency exchanges via [ccxt](https://github.com/ccxt/ccxt). It implements a complete trading pipeline — signal generation, multi-dimensional confluence filtering, adaptive risk management, exchange execution, position management, and reflection-driven strategy evolution.
 
@@ -681,6 +681,8 @@ SITA implements multiple layers of protection:
 
 ## License
 
-**AGPL-3.0** — See [LICENSE](LICENSE)
+**MIT** — See [LICENSE](LICENSE)
 
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+Copyright (c) 2026 artifact-opensource
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software.
