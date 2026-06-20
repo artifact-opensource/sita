@@ -46,6 +46,7 @@ from .execution import ExchangeExecutor
 from .position import PositionManager
 from .reflection import ReflectionEngine
 from .regime import RegimeDetector, LiquidityAnalyzer
+from .arbitrage import ArbitrageEngine
 
 # ─── Logging Setup ──────────────────────────────────────────────────────────
 
@@ -66,7 +67,7 @@ class SITA:
 
     Loop:
     1. Fetch OHLCV data for each symbol
-    2. Generate signal (7 strategies + fallback)
+    2. Generate signal (8 strategies + fallback)
     3. Score confluence (9-dimension quality gate)
     4. Risk check (position sizing, limits)
     5. Execute (paper or live)
@@ -94,6 +95,11 @@ class SITA:
         self.regime_detector = RegimeDetector(self.config.get("regime", {}))
         self.liquidity_analyzer = LiquidityAnalyzer(self.config.get("liquidity", {}))
 
+        # Arbitrage engine (spot-futures basis)
+        self.arbitrage = ArbitrageEngine(self.config.get("arbitrage", {}))
+        if self.executor and self.executor.exchange:
+            self.arbitrage.register_exchange("binance", self.executor.exchange)
+
         # Discord notifier
         self.discord = None
         try:
@@ -117,6 +123,9 @@ class SITA:
                 logger.info("Discord notifier enabled")
         except Exception as e:
             logger.warning(f"Discord notifier init failed: {e}")
+
+        # Sync existing exchange positions on startup
+        self._sync_exchange_positions()
 
         # Initialize balance
         balance = self.executor.get_balance()
@@ -191,6 +200,9 @@ class SITA:
 
         # Update existing positions
         self._manage_positions()
+
+        # Scan for arbitrage opportunities (funding rate plays)
+        self._scan_arbitrage()
 
     def _process_symbol(self, symbol: str, balance: float):
         """Process a single symbol with regime awareness."""
@@ -300,6 +312,9 @@ class SITA:
         )
 
         if order.success:
+            # Track position count per symbol (only after successful order)
+            self.risk_manager.state.positions_by_symbol[symbol] = self.risk_manager.state.positions_by_symbol.get(symbol, 0) + 1
+            self.risk_manager.state.open_positions += 1
             self.position_manager.open_position(
                 symbol=symbol,
                 side=signal.direction.value,
@@ -369,6 +384,87 @@ class SITA:
                 "reason": result.get("reason", ""),
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             }) + "\n")
+        # Update risk manager trade count
+        self.risk_manager.record_trade_result(result.get("pnl", 0), symbol=pos.symbol)
+
+    def _scan_arbitrage(self):
+        """Scan for spot-futures basis opportunities."""
+        if not self.arbitrage.exchanges:
+            return
+
+        for symbol in ["ETH", "BTC", "SOL"]:
+            try:
+                opp = self.arbitrage.scan_spot_futures_basis(symbol)
+                if opp and opp.is_favorable:
+                    logger.info(f"ARB OPPORTUNITY: {symbol} basis={opp.basis_pct:.3f}%, "
+                               f"funding={opp.funding_rate:.6f}, est_apy={opp.estimated_apr*100:.1f}%")
+
+                    if self.discord:
+                        try:
+                            self.discord.post_alert(
+                                f"🔄 Arb Opportunity: {symbol}",
+                                f"Basis: {opp.basis_pct:.3f}%\n"
+                                f"Funding: {opp.funding_rate:.6f} ({opp.estimated_apr*100:.1f}% APY)\n"
+                                f"Spot: ${opp.spot_price:.2f} → Futures: ${opp.futures_price:.2f}",
+                                color="blue",
+                                fields={
+                                    "Est. APY": f"{opp.estimated_apr*100:.1f}%",
+                                    "Confidence": f"{opp.confidence:.0%}",
+                                },
+                            )
+                        except Exception as e:
+                            logger.debug(f"Discord arb alert failed: {e}")
+            except Exception as e:
+                logger.debug(f"Arb scan failed for {symbol}: {e}")
+
+    def _sync_exchange_positions(self):
+        """Sync existing exchange positions into position manager and risk state on startup."""
+        if not self.executor or not self.executor.exchange:
+            return
+
+        existing = self.executor.sync_positions()
+        for pos_info in existing:
+            symbol = pos_info["symbol"]
+            side = pos_info["side"]
+            size = pos_info["size"]
+            entry = pos_info["entry_price"]
+
+            # Register in risk manager
+            self.risk_manager.state.positions_by_symbol[symbol] = \
+                self.risk_manager.state.positions_by_symbol.get(symbol, 0) + 1
+            self.risk_manager.state.open_positions += 1
+
+            # Register in position manager
+            self.position_manager.open_position(
+                symbol=symbol,
+                side=side,
+                size=size,
+                entry_price=entry,
+                stop_loss=0,
+                take_profit=0,
+                order_id="existing",
+            )
+
+            logger.info(f"Synced position: {symbol} {side} {size} @ {entry}")
+
+        if existing:
+            logger.info(f"Synced {len(existing)} existing position(s) from exchange")
+
+            # Notify Discord
+            if self.discord:
+                try:
+                    pos_lines = []
+                    for p in existing:
+                        pos_lines.append(
+                            f"{p['symbol']} {p['side']} {p['size']} @ ${p['entry_price']:.2f}"
+                        )
+                    self.discord.post_alert(
+                        "🔄 Positions Synced",
+                        "Found existing positions on exchange:\n" + "\n".join(pos_lines),
+                        color="yellow",
+                    )
+                except Exception as e:
+                    logger.debug(f"Discord sync notification failed: {e}")
 
     def _compute_atr(self, ohlcv: "pd.DataFrame", period: int = 14) -> float:
         high = ohlcv["high"]
@@ -396,12 +492,12 @@ class SITA:
             "positions": {s: {"side": p.side, "size": p.size, "entry": p.entry_price, "sl": p.stop_loss, "tp": p.take_profit} for s, p in positions.items()},
             "stats": stats,
             "risk_limits": {
-                "max_daily_loss": "1.5%",
-                "max_weekly_loss": "3%",
-                "max_total_dd": "5%",
-                "max_risk_per_trade": "0.5%",
-                "max_positions": 3,
-                "recovery_threshold": "3%",
+                "max_daily_loss": "5%",
+                "max_weekly_loss": "10%",
+                "max_total_dd": "20%",
+                "max_risk_per_trade": "1%",
+                "max_positions": 1,
+                "max_leverage": 10,
             },
         }
 

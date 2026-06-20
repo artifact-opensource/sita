@@ -13,6 +13,7 @@ Strategies:
     5. Trend Following — ADX-filtered trend continuation
     6. Mean Reversion — Bollinger Band + RSI reversal
     7. RSI Reversal — Pure RSI extreme reversal (APEX innovation)
+    8. Accumulation — DCA dip buying in confirmed uptrend (APEX innovation)
 
 Plus: Multi-strategy fallback — if primary is quiet, try alternatives.
 """
@@ -549,6 +550,81 @@ class RSIReversal:
         )
 
 
+# ─── Strategy 8: Accumulation (DCA Dip Buying) ─────────────────────────────
+
+class Accumulation:
+    """
+    Accumulation strategy — DCA-style dip buying in confirmed uptrend.
+    Buys small amounts on pullbacks to value zones (lower BB, EMA support).
+    Best for building positions in trending markets with low volatility.
+    Triggers: RSI dips below 40-45 in uptrend, price touches lower BB or EMA.
+    """
+
+    name = "accumulation"
+    regime_affinity = "trending_weak"
+
+    def __init__(self, rsi_period: int = 14, rsi_dip: int = 42, ema_period: int = 50,
+                 bb_period: int = 20, adx_period: int = 14, adx_min: int = 20):
+        self.rsi_period = rsi_period
+        self.rsi_dip = rsi_dip
+        self.ema_period = ema_period
+        self.bb_period = bb_period
+        self.adx_period = adx_period
+        self.adx_min = adx_min
+
+    def generate_signal(self, ohlcv: pd.DataFrame, symbol: str = "") -> SignalResult:
+        if len(ohlcv) < max(self.ema_period, self.bb_period, self.adx_period) + 5:
+            return SignalResult(SignalDirection.NONE, SignalStrength.WEAK, 0.0, strategy_name=self.name)
+
+        close = ohlcv["close"]
+        rsi = compute_rsi(close, self.rsi_period)
+        ema = compute_ema(close, self.ema_period)
+        adx = compute_adx(ohlcv, self.adx_period)
+        bb_upper, bb_mid, bb_lower = compute_bollinger(close, self.bb_period)
+
+        curr_rsi = rsi.iloc[-1]
+        prev_rsi = rsi.iloc[-2]
+        curr_close = close.iloc[-1]
+        curr_ema = ema.iloc[-1]
+        curr_adx = adx.iloc[-1]
+        curr_bb_lower = bb_lower.iloc[-1]
+        curr_bb_mid = bb_mid.iloc[-1]
+
+        direction = SignalDirection.NONE
+        confidence = 0.0
+
+        if np.isnan(curr_adx):
+            return SignalResult(SignalDirection.NONE, SignalStrength.WEAK, 0.0, strategy_name=self.name)
+
+        # Uptrend confirmed: price above EMA, ADX above minimum
+        uptrend = curr_close > curr_ema and curr_adx > self.adx_min
+
+        if uptrend:
+            # Dip buy: RSI pulled back to zone but not crashed
+            rsi_dip_zone = self.rsi_dip - 10 <= curr_rsi <= self.rsi_dip + 8
+            rsi_bouncing = curr_rsi > prev_rsi  # RSI turning up from dip
+            near_value = curr_close <= curr_bb_mid  # At or below BB midline
+
+            if rsi_dip_zone and rsi_bouncing and near_value:
+                # Confidence based on trend strength + dip quality
+                trend_score = min(curr_adx / 40, 0.4)
+                dip_score = (1 - abs(curr_rsi - self.rsi_dip) / 20) * 0.3
+                value_score = (1 - (curr_close - curr_bb_lower) / (curr_bb_mid - curr_bb_lower + 1e-9)) * 0.3
+                confidence = min(trend_score + dip_score + value_score, 1.0)
+                direction = SignalDirection.LONG
+
+        strength = SignalStrength.STRONG if confidence > 0.7 else SignalStrength.MODERATE if confidence > 0.4 else SignalStrength.WEAK
+
+        return SignalResult(
+            direction=direction,
+            strength=strength,
+            confidence=confidence,
+            entry_price=curr_close,
+            strategy_name=self.name,
+            regime_affinity=self.regime_affinity,
+        )
+
+
 # ─── Strategy Selector with Multi-Strategy Fallback ────────────────────────
 
 class StrategySelector:
@@ -567,6 +643,7 @@ class StrategySelector:
             TrendFollowing(),
             MeanReversion(),
             RSIReversal(),
+            Accumulation(),
         ]
         self.fallback_count = self.config.get("fallback_count", 3)
         logger.info(f"StrategySelector initialized with {len(self.strategies)} strategies, fallback={self.fallback_count}")

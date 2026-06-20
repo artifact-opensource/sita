@@ -76,7 +76,7 @@ class EntryConfluenceFilter:
         # Confluence parameters
         self.min_score_to_enter = self.config.get("min_score_to_enter", 50)
         self.min_score_for_full_size = self.config.get("min_score_for_full_size", 75)
-        self.enable_wait_mode = self.config.get("enable_wait_mode", True)
+        self.enable_wait_mode = self.config.get("enable_wait_mode", False)
         self.max_wait_bars = self.config.get("max_wait_bars", 10)
         self.sr_lookback = self.config.get("sr_lookback", 100)
 
@@ -250,7 +250,7 @@ class EntryConfluenceFilter:
         # ─── Should enter? ─────────────────────────────────────────────
         should_enter = (
             quality in (EntryQuality.PREMIUM, EntryQuality.GOOD, EntryQuality.MARGINAL)
-            and not wait_for_better
+            and (not wait_for_better or not self.enable_wait_mode)
         )
 
         return ConfluenceResult(

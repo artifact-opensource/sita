@@ -44,7 +44,7 @@ class RiskLimits:
     recovery_mode_risk_mult: float = 0.50
     min_lot: float = 0.001
     min_notional: float = 5.0        # Minimum order notional in USDT (Binance futures = 5)
-    balance_breakpoints: List[float] = field(default_factory=lambda: BALANCE_BREAKPOINTS)
+    balance_breakpoints: tuple = field(default_factory=lambda: BALANCE_BREAKPOINTS)
     risk_by_category: Dict[str, float] = field(default_factory=lambda: RISK_BY_CATEGORY)
 
 
@@ -158,7 +158,9 @@ class UnifiedRiskManager:
             logger.warning(f"WEEKLY LOSS LIMIT: {weekly_loss/initial*100:.1f}%")
             self.state.weekly_limit_hit = True
         if self.state.drawdown_pct >= self.limits.max_total_loss_pct and not self.state.total_limit_hit:
-            logger.error(f"TOTAL LOSS LIMIT: DD={self.state.drawdown_pct*100:.1f}%")
+            logger.error(f"TOTAL LOSS LIMIT: DD={self.state.drawdown_pct*100:.1f}%, "
+                        f"peak={self.state.peak_balance}, current={self.state.current_balance}, "
+                        f"threshold={self.limits.max_total_loss_pct}")
             self.state.total_limit_hit = True
 
     def get_balance_category(self, balance: float) -> str:
@@ -185,12 +187,15 @@ class UnifiedRiskManager:
     ) -> Tuple[float, float]:
         """
         Calculate position size based on risk per trade and SL distance.
-        Enforces Binance minimum notional (min_notional from config, default $5).
-        When account is small, scales position to meet min notional floor.
+        Accounts for leverage: position notional can exceed balance (up to max_leverage).
+        Enforces Binance minimum notional (min_notional from config).
 
         Returns: (position_size, risk_amount)
         """
         min_notional = self.config.get("min_notional", 5.0) if self.config else 5.0
+        max_leverage = self.config.get("max_leverage", 10) if self.config else 10
+        max_position_pct = self.config.get("max_position_pct", 0.35) if self.config else 0.35
+
         risk_pct = self.get_risk_percentage(balance)
         risk_amount = balance * risk_pct * confluence_mult
 
@@ -201,18 +206,24 @@ class UnifiedRiskManager:
         # Base position size from risk
         position_size = risk_amount / sl_distance
 
-        # Enforce minimum notional (Binance futures requires >= $5)
+        # Cap position by max leverage: max_notional = balance * max_leverage
+        max_notional = balance * max_leverage
+        max_size_by_leverage = max_notional / entry_price if entry_price > 0 else position_size
+        if position_size > max_size_by_leverage:
+            position_size = max_size_by_leverage
+            risk_amount = position_size * sl_distance
+
+        # Enforce minimum notional (Binance futures requires >= min_notional)
         min_size_for_notional = min_notional / entry_price if entry_price > 0 else position_size
         if position_size < min_size_for_notional:
             position_size = min_size_for_notional
-            # Recalculate risk for this larger size
             risk_amount = position_size * sl_distance
 
-        # Cap notional value: max 35% of balance per position
-        max_notional = balance * 0.35
-        max_size_by_notional = max_notional / entry_price if entry_price > 0 else position_size
-        if position_size > max_size_by_notional:
-            position_size = max_size_by_notional
+        # Cap notional value: max max_position_pct of balance per position (safety cap)
+        max_notional_pct = balance * max_position_pct
+        max_size_by_pct = max_notional_pct / entry_price if entry_price > 0 else position_size
+        if position_size > max_size_by_pct:
+            position_size = max_size_by_pct
             risk_amount = position_size * sl_distance
 
         position_size = max(position_size, self.limits.min_lot)
@@ -289,6 +300,9 @@ class UnifiedRiskManager:
         if position_size <= 0:
             return RiskDecision(RiskAction.REJECTED, 0, 0, 0, 0, reasons=["Position size too small"])
 
+        # Note: position count tracking is done in __main__.py after successful order
+        # to avoid counting failed orders
+
         # Recovery mode warning
         if self.state.recovery_mode:
             warnings.append("RECOVERY MODE: position size reduced")
@@ -311,7 +325,7 @@ class UnifiedRiskManager:
             warnings=warnings,
         )
 
-    def record_trade_result(self, pnl: float) -> None:
+    def record_trade_result(self, pnl: float, symbol: str = "") -> None:
         """Record a closed trade's P&L."""
         self.state.daily_pnl += pnl
         self.state.weekly_pnl += pnl
@@ -322,9 +336,14 @@ class UnifiedRiskManager:
             self.state.losses += 1
         self.state.recent_trades.append({
             "pnl": pnl,
+            "symbol": symbol,
             "timestamp": datetime.now(timezone.utc).isoformat(),
         })
         # Keep last 100 trades
         if len(self.state.recent_trades) > 100:
             self.state.recent_trades = self.state.recent_trades[-100:]
+        # Decrement position counts
+        if symbol:
+            self.state.positions_by_symbol[symbol] = max(0, self.state.positions_by_symbol.get(symbol, 1) - 1)
+            self.state.open_positions = max(0, self.state.open_positions - 1)
         self._check_limits()

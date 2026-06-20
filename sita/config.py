@@ -8,8 +8,9 @@ Direct exchange execution via ccxt.
 
 import os
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Mapping
 from pathlib import Path
+from types import MappingProxyType
 
 # ─── Paths ───────────────────────────────────────────────────────────────────
 
@@ -40,103 +41,106 @@ I_ACCEPT_RISK = os.getenv("SITA_I_ACCEPT_RISK", "false").lower() == "true"
 
 # ─── Supported Exchanges ─────────────────────────────────────────────────────
 
-SUPPORTED_EXCHANGES = {
-    "binance": {
+SUPPORTED_EXCHANGES: Mapping[str, Mapping] = MappingProxyType({
+    "binance": MappingProxyType({
         "name": "Binance",
-        "paper_trading": True,  # testnet available
+        "paper_trading": True,
         "testnet_url": "https://testnet.binance.vision",
-        "default_type": "future",  # futures for leverage
-        "timeframes": ["1m", "3m", "5m", "15m", "30m", "1h", "4h", "1d"],
-    },
-    "bybit": {
+        "default_type": "future",
+        "timeframes": ("1m", "3m", "5m", "15m", "30m", "1h", "4h", "1d"),
+        "min_notional": 0.01,
+    }),
+    "bybit": MappingProxyType({
         "name": "Bybit",
         "paper_trading": True,
         "testnet_url": "https://api-testnet.bybit.com",
         "default_type": "linear",
-        "timeframes": ["1m", "3m", "5m", "15m", "30m", "1h", "2h", "4h", "6h", "12h", "1d"],
-    },
-    "okx": {
+        "timeframes": ("1m", "3m", "5m", "15m", "30m", "1h", "2h", "4h", "6h", "12h", "1d"),
+    }),
+    "okx": MappingProxyType({
         "name": "OKX",
         "paper_trading": True,
         "testnet_url": "https://www.okx.com",
         "default_type": "swap",
-        "timeframes": ["1m", "3m", "5m", "15m", "30m", "1h", "2h", "4h", "6h", "12h", "1d"],
-    },
-    "kraken": {
+        "timeframes": ("1m", "3m", "5m", "15m", "30m", "1h", "2h", "4h", "6h", "12h", "1d"),
+    }),
+    "kraken": MappingProxyType({
         "name": "Kraken",
         "paper_trading": False,
         "default_type": "spot",
-        "timeframes": ["1m", "5m", "15m", "30m", "1h", "4h", "1d", "1w"],
-    },
-}
+        "timeframes": ("1m", "5m", "15m", "30m", "1h", "4h", "1d", "1w"),
+    }),
+})
 
 # ─── Default Watchlist ─────────────────────────────────────────────────────
 
-DEFAULT_WATCHLIST = [
-    "BTC/USDT:USDT",
-    "ETH/USDT:USDT",
-    "SOL/USDT:USDT",
-]
+DEFAULT_WATCHLIST = (
+    "BTC/USDT:USDT",       # BTC futures (works with $10 account)
+    "ETH/USDT",            # ETH spot (no $20 min notional)
+    "SOL/USDT",            # SOL spot (no $20 min notional)
+)
 
 # ─── Confluence Scoring Weights ────────────────────────────────────────────
 # Must sum to 1.0
 
-CONFLUENCE_WEIGHTS = {
-    "level": 0.18,       # Proximity to S/R, round numbers, EMAs
-    "momentum": 0.15,    # Momentum alignment with entry
-    "timing": 0.10,      # Entry timing quality
-    "structure": 0.08,   # Market structure alignment
-    "trend": 0.17,       # Macro trend alignment
-    "bos": 0.12,         # Break of Structure / ChoCH
-    "order_block": 0.12, # ICT Order Block confluence
-    "session_orb": 0.08, # Session Opening Range Breakout
-}
+CONFLUENCE_WEIGHTS: Mapping[str, float] = MappingProxyType({
+    "level": 0.18,
+    "momentum": 0.15,
+    "timing": 0.10,
+    "structure": 0.08,
+    "trend": 0.17,
+    "bos": 0.12,
+    "order_block": 0.12,
+    "session_orb": 0.08,
+})
 
 # ─── Entry Quality Thresholds ──────────────────────────────────────────────
 
-ENTRY_THRESHOLDS = {
-    "premium": 85,   # Full position size
-    "good": 70,      # 85% position size
-    "marginal": 50,  # 60% position size
-    "poor": 20,      # 30% position size
-    "reject": 0,     # No trade
-}
+ENTRY_THRESHOLDS: Mapping[str, int] = MappingProxyType({
+    "premium": 85,
+    "good": 70,
+    "marginal": 50,
+    "poor": 20,
+    "reject": 0,
+})
 
 # ─── Position Size Multipliers ─────────────────────────────────────────────
 
-POSITION_MULTIPLIERS = {
+POSITION_MULTIPLIERS: Mapping[str, float] = MappingProxyType({
     "premium": 1.0,
     "good": 0.85,
     "marginal": 0.6,
     "poor": 0.3,
     "reject": 0.0,
-}
+})
 
 # ─── Risk Defaults ─────────────────────────────────────────────────────────
 
-DEFAULT_RISK_LIMITS = {
-    "max_daily_loss_pct": 0.03,         # 3% daily loss limit ($0.30 on $10)
-    "max_weekly_loss_pct": 0.05,        # 5% weekly loss limit ($0.50 on $10)
-    "max_total_loss_pct": 0.10,         # 10% total DD limit ($1.00 kill switch)
-    "max_risk_per_trade_pct": 0.01,     # 1% risk per trade ($0.10 on $10)
-    "max_positions": 1,                 # Max 1 concurrent position (focused)
-    "max_positions_per_symbol": 1,      # Max 1 per symbol (no doubling up)
-    "recovery_mode_threshold": 0.05,    # Enter recovery at 5% DD
-    "recovery_mode_risk_mult": 0.5,     # 50% risk in recovery
+DEFAULT_RISK_LIMITS: Mapping[str, float] = MappingProxyType({
+    "max_daily_loss_pct": 0.05,
+    "max_weekly_loss_pct": 0.10,
+    "max_total_loss_pct": 0.20,
+    "max_risk_per_trade_pct": 0.01,
+    "max_positions": 1,
+    "max_positions_per_symbol": 1,
+    "recovery_mode_threshold": 0.05,
+    "recovery_mode_risk_mult": 0.5,
     "min_lot": 0.001,
-    "min_notional": 20.0,               # Binance futures minimum order notional (USDT)
-}
+    "min_notional": 0.01,
+    "max_leverage": 10,
+    "max_position_pct": 0.35,
+})
 
 # ─── Balance-Based Risk Categories ──────────────────────────────────────────
 
-BALANCE_BREAKPOINTS = [1000.0, 5000.0, 20000.0]
+BALANCE_BREAKPOINTS = (1000.0, 5000.0, 20000.0)
 
-RISK_BY_CATEGORY = {
-    "tiny": 0.005,    # 0.5% for accounts <= $1,000
-    "small": 0.01,    # 1% for accounts <= $5,000
-    "medium": 0.015,  # 1.5% for accounts <= $20,000
-    "large": 0.02,    # 2% for accounts > $20,000
-}
+RISK_BY_CATEGORY: Mapping[str, float] = MappingProxyType({
+    "tiny": 0.005,
+    "small": 0.01,
+    "medium": 0.015,
+    "large": 0.02,
+})
 
 # ─── Reflection Defaults ───────────────────────────────────────────────────
 
@@ -146,19 +150,26 @@ ONE_VARIABLE_ONLY = True      # Scientific method: change 1 var per cycle
 # ─── Data Adapter Defaults ─────────────────────────────────────────────────
 
 # Free public endpoints (no API key needed)
-FREE_DATA_SOURCES = {
-    "price": "ccxt_ohlcv",       # OHLCV from exchange via ccxt
-    "onchain": "coingecko",       # Free on-chain data
-    "news": "cryptopanic",        # Free tier
-    "macro": "tradingview",       # Free indicators
-}
+FREE_DATA_SOURCES: Mapping[str, str] = MappingProxyType({
+    "price": "ccxt_ohlcv",
+    "onchain": "coingecko",
+    "news": "cryptopanic",
+    "macro": "tradingview",
+})
 
 # Premium overrides (require API keys)
-PREMIUM_DATA_SOURCES = {
+PREMIUM_DATA_SOURCES: Mapping[str, str] = MappingProxyType({
     "onchain": "glassnode",
     "news": "newsapi",
     "macro": "fred",
-}
+})
+
+# ─── Arbitrage Configuration ────────────────────────────────────────────────
+
+ARBITRAGE_ENABLED = os.getenv("SITA_ARBITRAGE_ENABLED", "true").lower() == "true"
+ARBITRAGE_MIN_BASIS_PCT = float(os.getenv("SITA_ARBITRAGE_MIN_BASIS", "0.05"))  # 0.05% min basis
+ARBITRAGE_MIN_FUNDING_RATE = float(os.getenv("SITA_ARBITRAGE_MIN_FUNDING", "0.00005"))  # 0.005% per 8h
+ARBITRAGE_FEE_PCT = float(os.getenv("SITA_ARBITRAGE_FEE", "0.001"))  # 0.1% per trade
 
 # ─── Logging ────────────────────────────────────────────────────────────────
 

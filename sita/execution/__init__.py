@@ -54,6 +54,14 @@ class ExchangeExecutor:
 
         self._init_exchange()
 
+    def _is_futures_symbol(self, symbol: str) -> bool:
+        """Check if a symbol is a futures contract (contains ':USDT')."""
+        return ":USDT" in symbol
+
+    def _get_symbol_type(self, symbol: str) -> str:
+        """Get the ccxt type for a symbol: 'spot' or 'future'."""
+        return "future" if self._is_futures_symbol(symbol) else "spot"
+
     def _init_exchange(self) -> None:
         """Initialize ccxt exchange connection."""
         try:
@@ -96,7 +104,14 @@ class ExchangeExecutor:
                     exchange_config["urls"] = {"api": testnet_url}
 
             self.exchange = exchange_class(exchange_config)
-            logger.info(f"Exchange initialized: {self.exchange_id} ({self.mode})")
+
+            # Detect position mode (one-way vs hedge)
+            try:
+                pos_mode = self.exchange.fapiPrivateGetPositionSideDual() if hasattr(self.exchange, 'fapiPrivateGetPositionSideDual') else {}
+                self._hedge_mode = pos_mode.get('dualSidePosition', False)
+            except Exception:
+                self._hedge_mode = False
+            logger.info(f"Exchange initialized: {self.exchange_id} ({self.mode}, hedge={self._hedge_mode})")
 
         except ImportError:
             logger.error("ccxt not installed. Run: pip install ccxt")
@@ -115,7 +130,7 @@ class ExchangeExecutor:
 
         try:
             balance = self.exchange.fetch_balance()
-            return float(balance.get("total", {}).get(currency, 0.0))
+            return float(balance.get("free", {}).get(currency, 0.0))
         except Exception as e:
             logger.error(f"Balance fetch failed: {e}")
             return 0.0
@@ -213,16 +228,19 @@ class ExchangeExecutor:
             return OrderResult(success=False, error="Exchange not initialized", timestamp=timestamp)
 
         try:
-            # Determine position side for hedge mode
-            position_side = "LONG" if side == "buy" else "SHORT"
+            is_futures = self._is_futures_symbol(symbol)
+            symbol_type = self._get_symbol_type(symbol)
 
-            # Enforce minimum notional (Binance Futures requires >= $20)
-            min_notional = SUPPORTED_EXCHANGES.get(self.exchange_id, {}).get("min_notional", 20.0)
+            # Enforce minimum notional (Binance Futures >= $20, Spot >= $10)
+            if is_futures:
+                min_notional = SUPPORTED_EXCHANGES.get(self.exchange_id, {}).get("min_notional", 20.0)
+            else:
+                min_notional = 10.0  # Binance spot minimum notional ~$10 USDT
+
             order_price = price if price > 0 else self.get_current_price(symbol)
             notional = size * order_price
             if notional < min_notional:
                 min_size = min_notional / order_price
-                # Only scale up if the resulting position is <= 35% of account
                 max_size = (self.get_balance() * 0.35) / order_price
                 if min_size <= max_size:
                     logger.info(f"Position size {size} too small (notional ${notional:.2f} < ${min_notional}), scaling up to {min_size:.4f}")
@@ -231,8 +249,15 @@ class ExchangeExecutor:
                     logger.info(f"Order skipped: notional ${notional:.2f} < ${min_notional} min, scaled size {min_size:.4f} exceeds 35% cap")
                     return OrderResult(success=False, error=f"Notional too small (${notional:.2f} < ${min_notional}), account too small to scale", timestamp=timestamp)
 
-            # Build order params with position side for hedge mode
-            order_params = {"positionSide": position_side}
+            # Build order params — spot has no positionSide
+            if is_futures:
+                position_side = "LONG" if side == "buy" else "SHORT"
+                order_params = {"positionSide": position_side}
+            else:
+                order_params = {}
+
+            # Set default type for this symbol
+            self.exchange.options["defaultType"] = symbol_type
 
             # Place the main order
             if order_type == "market":
@@ -244,12 +269,14 @@ class ExchangeExecutor:
 
             order_id = str(order.get("id", ""))
 
-            # Set SL/TP if supported
-            if stop_loss > 0 or take_profit > 0:
+            # Set SL/TP if supported (futures only — spot uses local monitoring)
+            if is_futures and (stop_loss > 0 or take_profit > 0):
                 try:
                     sl_tp_side = "sell" if side == "buy" else "buy"
                     sl_tp_position = "LONG" if sl_tp_side == "sell" else "SHORT"
-                    sl_tp_params = {"positionSide": sl_tp_position, "reduceOnly": True}
+                    sl_tp_params = {"positionSide": sl_tp_position}
+                    if self._hedge_mode:
+                        sl_tp_params["reduceOnly"] = True
                     if stop_loss > 0:
                         self.exchange.create_order(symbol, "stop_market", sl_tp_side, size, None, {**sl_tp_params, "stopPrice": stop_loss})
                     if take_profit > 0:
@@ -257,7 +284,7 @@ class ExchangeExecutor:
                 except Exception as e:
                     logger.warning(f"SL/TP order failed: {e}")
 
-            logger.info(f"Order placed: {side} {size} {symbol} @ market (id={order_id})")
+            logger.info(f"Order placed: {side} {size} {symbol} @ market (id={order_id}, type={symbol_type})")
 
             return OrderResult(
                 success=True,
@@ -348,23 +375,44 @@ class ExchangeExecutor:
             return OrderResult(success=False, error="Exchange not initialized", timestamp=timestamp)
 
         try:
-            # Get current position
-            positions = self.exchange.fetch_positions([symbol])
-            for pos in positions:
-                size = float(pos.get("contracts", 0))
-                if size > 0:
-                    side = "sell" if pos.get("side") == "long" else "buy"
-                    position_side = "LONG" if side == "sell" else "SHORT"
-                    order = self.exchange.create_market_order(
-                        symbol, side, abs(size), None,
-                        {"positionSide": position_side, "reduceOnly": True}
-                    )
+            is_futures = self._is_futures_symbol(symbol)
+            self.exchange.options["defaultType"] = self._get_symbol_type(symbol)
+
+            if is_futures:
+                # Futures: fetch positions and close
+                positions = self.exchange.fetch_positions([symbol])
+                for pos in positions:
+                    size = float(pos.get("contracts", 0))
+                    if size > 0:
+                        side = "sell" if pos.get("side") == "long" else "buy"
+                        position_side = "LONG" if side == "sell" else "SHORT"
+                        close_params = {"positionSide": position_side}
+                        if self._hedge_mode:
+                            close_params["reduceOnly"] = True
+                        order = self.exchange.create_market_order(
+                            symbol, side, abs(size), None, close_params
+                        )
+                        return OrderResult(
+                            success=True,
+                            order_id=str(order.get("id", "")),
+                            symbol=symbol,
+                            side=side,
+                            size=abs(size),
+                            timestamp=timestamp,
+                        )
+            else:
+                # Spot: fetch balance and sell
+                balance = self.exchange.fetch_balance()
+                base = symbol.split("/")[0]
+                available = float(balance.get("free", {}).get(base, 0))
+                if available > 0:
+                    order = self.exchange.create_market_sell_order(symbol, available)
                     return OrderResult(
                         success=True,
                         order_id=str(order.get("id", "")),
                         symbol=symbol,
-                        side=side,
-                        size=abs(size),
+                        side="sell",
+                        size=available,
                         timestamp=timestamp,
                     )
 
@@ -399,3 +447,23 @@ class ExchangeExecutor:
         except Exception as e:
             logger.error(f"Positions fetch failed: {e}")
             return {}
+
+    def sync_positions(self) -> list:
+        """
+        Fetch existing exchange positions for SITA startup sync.
+        Returns list of dicts with symbol, side, size, entry_price, unrealized_pnl, is_futures.
+        """
+        positions = self.get_positions()
+        result = []
+        for symbol, pos in positions.items():
+            is_futures = self._is_futures_symbol(symbol)
+            result.append({
+                "symbol": symbol,
+                "side": pos["side"],
+                "size": pos["size"],
+                "entry_price": pos["entry_price"],
+                "unrealized_pnl": pos["unrealized_pnl"],
+                "is_futures": is_futures,
+            })
+            logger.info(f"Sync: found existing position: {symbol} {pos['side']} {pos['size']} @ {pos['entry_price']}")
+        return result

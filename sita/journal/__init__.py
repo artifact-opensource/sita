@@ -14,13 +14,15 @@ from datetime import datetime, timezone
 logger = logging.getLogger("sita.discord")
 
 # Channel IDs (configured via env or config)
-CHANNELS = {
-    "alerts": None,    # Trade alerts (entries, exits, SL hits)
-    "signals": None,   # Signal generation notifications
-    "health": None,    # System health / heartbeat
-    "journal": None,   # Daily reflection / strategy updates
-    "reports": None,   # Performance reports
-}
+# Use a factory function to avoid mutable default sharing
+def _default_channels() -> Dict[str, Optional[int]]:
+    return {
+        "alerts": None,    # Trade alerts (entries, exits, SL hits)
+        "signals": None,   # Signal generation notifications
+        "health": None,    # System health / heartbeat
+        "journal": None,   # Daily reflection / strategy updates
+        "reports": None,   # Performance reports
+    }
 
 
 class DiscordNotifier:
@@ -31,7 +33,7 @@ class DiscordNotifier:
 
     def __init__(self, token: str = None, channels: Dict[str, int] = None):
         self.token = token
-        self.channels = channels or CHANNELS
+        self.channels = channels if channels is not None else _default_channels()
         self._client = None
         self._enabled = bool(token)
 
