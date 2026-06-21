@@ -48,7 +48,7 @@ SUPPORTED_EXCHANGES: Mapping[str, Mapping] = MappingProxyType({
         "testnet_url": "https://testnet.binance.vision",
         "default_type": "future",
         "timeframes": ("1m", "3m", "5m", "15m", "30m", "1h", "4h", "1d"),
-        "min_notional": 0.01,
+        "min_notional": 5.0,    # Binance futures minimum notional
     }),
     "bybit": MappingProxyType({
         "name": "Bybit",
@@ -75,9 +75,16 @@ SUPPORTED_EXCHANGES: Mapping[str, Mapping] = MappingProxyType({
 # ─── Default Watchlist ─────────────────────────────────────────────────────
 
 DEFAULT_WATCHLIST = (
-    "BTC/USDT:USDT",       # BTC futures (works with $10 account)
-    "ETH/USDT",            # ETH spot (no $20 min notional)
-    "SOL/USDT",            # SOL spot (no $20 min notional)
+    "BTC/USDT:USDT",       # BTC futures
+    "ETH/USDT:USDT",       # ETH futures
+    "SOL/USDT:USDT",       # SOL futures
+    "BNB/USDT:USDT",       # BNB futures
+    "XRP/USDT:USDT",       # XRP futures
+    "DOGE/USDT:USDT",      # DOGE futures
+    "ADA/USDT:USDT",       # ADA futures
+    "AVAX/USDT:USDT",      # AVAX futures
+    "DOT/USDT:USDT",       # DOT futures
+    "LINK/USDT:USDT",      # LINK futures
 )
 
 # ─── Confluence Scoring Weights ────────────────────────────────────────────
@@ -97,9 +104,9 @@ CONFLUENCE_WEIGHTS: Mapping[str, float] = MappingProxyType({
 # ─── Entry Quality Thresholds ──────────────────────────────────────────────
 
 ENTRY_THRESHOLDS: Mapping[str, int] = MappingProxyType({
-    "premium": 85,
-    "good": 70,
-    "marginal": 50,
+    "premium": 80,
+    "good": 55,
+    "marginal": 40,
     "poor": 20,
     "reject": 0,
 })
@@ -109,26 +116,26 @@ ENTRY_THRESHOLDS: Mapping[str, int] = MappingProxyType({
 POSITION_MULTIPLIERS: Mapping[str, float] = MappingProxyType({
     "premium": 1.0,
     "good": 0.85,
-    "marginal": 0.6,
-    "poor": 0.3,
+    "marginal": 0.75,
+    "poor": 0.5,
     "reject": 0.0,
 })
 
 # ─── Risk Defaults ─────────────────────────────────────────────────────────
 
 DEFAULT_RISK_LIMITS: Mapping[str, float] = MappingProxyType({
-    "max_daily_loss_pct": 0.05,
-    "max_weekly_loss_pct": 0.10,
-    "max_total_loss_pct": 0.20,
-    "max_risk_per_trade_pct": 0.01,
-    "max_positions": 1,
-    "max_positions_per_symbol": 1,
-    "recovery_mode_threshold": 0.05,
-    "recovery_mode_risk_mult": 0.5,
+    "max_daily_loss_pct": 0.10,
+    "max_weekly_loss_pct": 0.15,
+    "max_total_loss_pct": 0.25,
+    "max_risk_per_trade_pct": 0.02,
+    "max_positions": 3,
+    "max_positions_per_symbol": 2,
+    "recovery_mode_threshold": 0.15,
+    "recovery_mode_risk_mult": 0.75,
     "min_lot": 0.001,
     "min_notional": 0.01,
     "max_leverage": 10,
-    "max_position_pct": 0.35,
+    "max_position_pct": 0.50,
 })
 
 # ─── Balance-Based Risk Categories ──────────────────────────────────────────
@@ -136,8 +143,8 @@ DEFAULT_RISK_LIMITS: Mapping[str, float] = MappingProxyType({
 BALANCE_BREAKPOINTS = (1000.0, 5000.0, 20000.0)
 
 RISK_BY_CATEGORY: Mapping[str, float] = MappingProxyType({
-    "tiny": 0.005,
-    "small": 0.01,
+    "tiny": 0.02,
+    "small": 0.02,
     "medium": 0.015,
     "large": 0.02,
 })

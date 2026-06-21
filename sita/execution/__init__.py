@@ -231,9 +231,9 @@ class ExchangeExecutor:
             is_futures = self._is_futures_symbol(symbol)
             symbol_type = self._get_symbol_type(symbol)
 
-            # Enforce minimum notional (Binance Futures >= $20, Spot >= $10)
+            # Enforce minimum notional (Binance Futures >= $5)
             if is_futures:
-                min_notional = SUPPORTED_EXCHANGES.get(self.exchange_id, {}).get("min_notional", 20.0)
+                min_notional = SUPPORTED_EXCHANGES.get(self.exchange_id, {}).get("min_notional", 5.0)
             else:
                 min_notional = 10.0  # Binance spot minimum notional ~$10 USDT
 
@@ -241,13 +241,27 @@ class ExchangeExecutor:
             notional = size * order_price
             if notional < min_notional:
                 min_size = min_notional / order_price
-                max_size = (self.get_balance() * 0.35) / order_price
+                current_bal = self.get_balance()
+                max_size = (current_bal * 0.55) / order_price
+                logger.info(f"Notional check: notional=${notional:.2f}, min=${min_notional}, min_size={min_size:.4f}, max_size={max_size:.4f}, bal={current_bal:.2f}")
                 if min_size <= max_size:
                     logger.info(f"Position size {size} too small (notional ${notional:.2f} < ${min_notional}), scaling up to {min_size:.4f}")
                     size = min_size
                 else:
-                    logger.info(f"Order skipped: notional ${notional:.2f} < ${min_notional} min, scaled size {min_size:.4f} exceeds 35% cap")
+                    logger.info(f"Order skipped: notional ${notional:.2f} < ${min_notional} min, scaled size {min_size:.4f} exceeds 50% cap")
                     return OrderResult(success=False, error=f"Notional too small (${notional:.2f} < ${min_notional}), account too small to scale", timestamp=timestamp)
+
+            # Round up to exchange step size (BNB=0.01, AVAX=1, ADA=0.01, etc.)
+            if self.exchange and is_futures:
+                try:
+                    market = self.exchange.market(symbol)
+                    step_size = market.get("limits", {}).get("amount", {}).get("min", 0)
+                    if step_size > 0:
+                        import math
+                        size = math.ceil(size / step_size) * step_size
+                        size = round(size, 8)
+                except Exception:
+                    pass
 
             # Build order params — spot has no positionSide
             if is_futures:

@@ -135,7 +135,7 @@ class SITA:
         # Watchlist
         self.watchlist = self.config.get("watchlist", DEFAULT_WATCHLIST)
         self.timeframe = self.config.get("timeframe", "15m")
-        self.loop_interval = self.config.get("loop_interval", 60)  # seconds
+        self.loop_interval = self.config.get("loop_interval", 15)  # seconds
 
         logger.info(f"SITA initialized. Mode: {TRADING_MODE}. Watchlist: {self.watchlist}")
 
@@ -240,13 +240,13 @@ class SITA:
             logger.info(f"{symbol}: Disabled by reflection — skipping")
             return
 
-        # Skip if regime confidence is low
-        if regime.confidence.value == "low":
-            logger.info(f"{symbol}: Low regime confidence — skipping")
-            return
-
         # ─── 1. Generate signal (regime-aware) ──────────────────────────
         signal = self.signal_engine.generate_signal(ohlcv, symbol)
+
+        # Skip only if regime confidence is low AND no strong signal
+        if regime.confidence.value == "low" and signal.primary.confidence < 0.6:
+            logger.info(f"{symbol}: Low regime confidence + weak signal — skipping")
+            return
 
         if not signal.primary.has_signal:
             logger.debug(f"{symbol}: No signal")
@@ -392,10 +392,10 @@ class SITA:
         if not self.arbitrage.exchanges:
             return
 
-        for symbol in ["ETH", "BTC", "SOL"]:
+        for symbol in ["ETH", "BTC", "SOL", "BNB", "XRP", "DOGE", "ADA", "AVAX", "DOT", "LINK"]:
             try:
                 opp = self.arbitrage.scan_spot_futures_basis(symbol)
-                if opp and opp.is_favorable:
+                if opp and opp.is_favorable and opp.confidence > 0.5:
                     logger.info(f"ARB OPPORTUNITY: {symbol} basis={opp.basis_pct:.3f}%, "
                                f"funding={opp.funding_rate:.6f}, est_apy={opp.estimated_apr*100:.1f}%")
 
