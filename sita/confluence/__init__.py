@@ -248,8 +248,9 @@ class EntryConfluenceFilter:
         position_mult = self.position_multipliers.get(quality.value, 0.0)
 
         # ─── Should enter? ─────────────────────────────────────────────
+        # HFT mode: accept POOR quality too (with smaller size)
         should_enter = (
-            quality in (EntryQuality.PREMIUM, EntryQuality.GOOD, EntryQuality.MARGINAL)
+            quality in (EntryQuality.PREMIUM, EntryQuality.GOOD, EntryQuality.MARGINAL, EntryQuality.POOR)
             and (not wait_for_better or not self.enable_wait_mode)
         )
 

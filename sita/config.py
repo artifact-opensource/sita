@@ -103,8 +103,8 @@ CONFLUENCE_WEIGHTS: Mapping[str, float] = MappingProxyType({
 ENTRY_THRESHOLDS: Mapping[str, int] = MappingProxyType({
     "premium": 80,
     "good": 55,
-    "marginal": 40,
-    "poor": 20,
+    "marginal": 35,
+    "poor": 10,
     "reject": 0,
 })
 

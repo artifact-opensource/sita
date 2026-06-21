@@ -252,14 +252,7 @@ class SITA:
             logger.debug(f"{symbol}: No signal")
             return
 
-        # Regime filter: check if signal direction matches regime
-        if regime.regime.value == "trending_strong" and signal.direction.value == "short" and regime.trend_direction == "up":
-            logger.info(f"{symbol}: Filtered — short signal in strong uptrend")
-            return
-        if regime.regime.value == "trending_strong" and signal.direction.value == "long" and regime.trend_direction == "down":
-            logger.info(f"{symbol}: Filtered — long signal in strong downtrend")
-            return
-
+        # HFT mode: no regime filter — trade both directions
         logger.info(f"{symbol}: {signal.primary.summary}")
 
         # ─── 2. Confluence filter ───────────────────────────────────────
@@ -555,7 +548,7 @@ def main():
     config = {
         "exchange": getattr(args, "exchange", None),
         "timeframe": getattr(args, "timeframe", "15m"),
-        "loop_interval": getattr(args, "interval", 60),
+        "loop_interval": getattr(args, "interval", 15),
     }
 
     sita = SITA(config)

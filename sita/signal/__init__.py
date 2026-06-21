@@ -58,7 +58,7 @@ class SignalResult:
 
     @property
     def has_signal(self) -> bool:
-        return self.direction != SignalDirection.NONE and self.confidence > 0.3
+        return self.direction != SignalDirection.NONE and self.confidence > 0.1
 
     @property
     def summary(self) -> str:
