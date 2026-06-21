@@ -105,6 +105,12 @@ class ExchangeExecutor:
 
             self.exchange = exchange_class(exchange_config)
 
+            # Load market data for accurate min notional/step sizes
+            try:
+                self.exchange.load_markets()
+            except Exception as e:
+                logger.warning(f"Failed to load markets: {e}")
+
             # Detect position mode (one-way vs hedge)
             try:
                 pos_mode = self.exchange.fapiPrivateGetPositionSideDual() if hasattr(self.exchange, 'fapiPrivateGetPositionSideDual') else {}
@@ -121,7 +127,7 @@ class ExchangeExecutor:
             self.exchange = None
 
     def get_balance(self, currency: str = "USDT") -> float:
-        """Get account balance."""
+        """Get account free balance (available for new positions)."""
         if self.mode == "paper":
             return self._paper_balance
 
@@ -131,6 +137,21 @@ class ExchangeExecutor:
         try:
             balance = self.exchange.fetch_balance()
             return float(balance.get("free", {}).get(currency, 0.0))
+        except Exception as e:
+            logger.error(f"Balance fetch failed: {e}")
+            return 0.0
+
+    def get_total_balance(self, currency: str = "USDT") -> float:
+        """Get account total balance (including unrealized PnL)."""
+        if self.mode == "paper":
+            return self._paper_balance
+
+        if not self.exchange:
+            return 0.0
+
+        try:
+            balance = self.exchange.fetch_balance()
+            return float(balance.get("total", {}).get(currency, 0.0))
         except Exception as e:
             logger.error(f"Balance fetch failed: {e}")
             return 0.0
@@ -231,9 +252,17 @@ class ExchangeExecutor:
             is_futures = self._is_futures_symbol(symbol)
             symbol_type = self._get_symbol_type(symbol)
 
-            # Enforce minimum notional (Binance Futures >= $5)
+            # Enforce minimum notional — use exchange's actual market limit
             if is_futures:
                 min_notional = SUPPORTED_EXCHANGES.get(self.exchange_id, {}).get("min_notional", 5.0)
+                # Fetch actual market limit from exchange (some symbols like LINK require $20)
+                try:
+                    m = self.exchange.market(symbol)
+                    market_min_not = m.get("limits", {}).get("cost", {}).get("min", 0)
+                    if market_min_not and market_min_not > min_notional:
+                        min_notional = market_min_not
+                except Exception:
+                    pass
             else:
                 min_notional = 10.0  # Binance spot minimum notional ~$10 USDT
 
@@ -241,7 +270,7 @@ class ExchangeExecutor:
             notional = size * order_price
             if notional < min_notional:
                 min_size = min_notional / order_price
-                current_bal = self.get_balance()
+                current_bal = self.get_total_balance()
                 max_size = (current_bal * 0.60) / order_price
                 logger.info(f"Notional check: notional=${notional:.2f}, min=${min_notional}, min_size={min_size:.4f}, max_size={max_size:.4f}, bal={current_bal:.2f}")
                 if min_size <= max_size:
@@ -283,20 +312,17 @@ class ExchangeExecutor:
 
             order_id = str(order.get("id", ""))
 
-            # Set SL/TP if supported (futures only — spot uses local monitoring)
-            if is_futures and (stop_loss > 0 or take_profit > 0):
+            # Set TP only — no stop loss orders (HFT mode: let positions run until TP)
+            if is_futures and take_profit > 0:
                 try:
                     sl_tp_side = "sell" if side == "buy" else "buy"
                     sl_tp_position = "LONG" if sl_tp_side == "sell" else "SHORT"
                     sl_tp_params = {"positionSide": sl_tp_position}
                     if self._hedge_mode:
                         sl_tp_params["reduceOnly"] = True
-                    if stop_loss > 0:
-                        self.exchange.create_order(symbol, "stop_market", sl_tp_side, size, None, {**sl_tp_params, "stopPrice": stop_loss})
-                    if take_profit > 0:
-                        self.exchange.create_order(symbol, "take_profit_market", sl_tp_side, size, None, {**sl_tp_params, "stopPrice": take_profit})
+                    self.exchange.create_order(symbol, "take_profit_market", sl_tp_side, size, None, {**sl_tp_params, "stopPrice": take_profit})
                 except Exception as e:
-                    logger.warning(f"SL/TP order failed: {e}")
+                    logger.warning(f"TP order failed: {e}")
 
             logger.info(f"Order placed: {side} {size} {symbol} @ market (id={order_id}, type={symbol_type})")
 

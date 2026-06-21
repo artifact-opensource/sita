@@ -220,7 +220,9 @@ class UnifiedRiskManager:
             risk_amount = position_size * sl_distance
 
         # Cap notional value: max max_position_pct of balance per position (safety cap)
-        max_notional_pct = balance * max_position_pct
+        # Use total balance for the cap since unrealized PnL counts
+        total_balance = balance  # Already passed as total from caller
+        max_notional_pct = total_balance * max_position_pct
         max_size_by_pct = max_notional_pct / entry_price if entry_price > 0 else position_size
         if position_size > max_size_by_pct:
             position_size = max_size_by_pct
@@ -234,40 +236,28 @@ class UnifiedRiskManager:
         return round(position_size, 6), round(actual_risk, 2)
 
     def _get_sl_multiplier(self, balance: float) -> float:
-        """Dynamic SL tightness based on account balance.
-        Small accounts get tight stops to avoid liquidation.
-        Larger accounts get wider stops for breathing room.
+        """SL tightness for HFT mode.
+        Uses 1% offset to define meaningful TP distance.
+        No hard stop-loss orders placed — TP is the only exit.
         """
-        if balance <= 20:
-            return 0.5   # Very tight — survive on small account
-        elif balance <= 50:
-            return 0.8
-        elif balance <= 100:
-            return 1.0
-        elif balance <= 500:
-            return 1.3
-        elif balance <= 1000:
-            return 1.5
-        else:
-            return 2.0   # Wide stops for large accounts
+        return 0.01  # 1% — meaningful TP distance, no hard SL
 
     def _get_tp_risk_reward(self, balance: float) -> float:
         """Dynamic TP risk-reward based on account balance.
-        Small accounts take quick small profits.
-        Larger accounts let winners run.
+        HFT mode: aggressive quick profits scaled to account size.
         """
         if balance <= 20:
-            return 0.5   # Quick $0.10-$0.50 profits
+            return 1.5   # Quick 0.15% profit on small accounts
         elif balance <= 50:
-            return 0.8
-        elif balance <= 100:
-            return 1.0
-        elif balance <= 500:
-            return 1.5
-        elif balance <= 1000:
             return 2.0
+        elif balance <= 100:
+            return 2.5
+        elif balance <= 500:
+            return 3.0
+        elif balance <= 1000:
+            return 4.0
         else:
-            return 3.0   # Let winners run big
+            return 5.0   # Let winners run big
 
     def _get_max_positions(self, balance: float) -> int:
         """Dynamic max positions based on account balance.
@@ -292,15 +282,20 @@ class UnifiedRiskManager:
         balance: float = 0.0,
         multiplier: float = 0.0,
     ) -> float:
-        """ATR-based stop loss with dynamic tightness."""
+        """SL calculation for HFT mode.
+        Uses percentage-based distance from entry (not ATR-based).
+        No hard stop-loss orders — TP is the only exit.
+        """
         if multiplier > 0:
             m = multiplier
         else:
             m = self._get_sl_multiplier(balance)
+        # Use percentage of entry price, not ATR
+        sl_distance = entry_price * m
         if direction == "long":
-            return round(entry_price - (atr * m), 8)
+            return round(entry_price - sl_distance, 8)
         else:
-            return round(entry_price + (atr * m), 8)
+            return round(entry_price + sl_distance, 8)
 
     def calculate_take_profit(
         self,

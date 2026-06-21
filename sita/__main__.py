@@ -190,8 +190,8 @@ class SITA:
 
     def _trading_cycle(self, cycle: int):
         """Single trading cycle."""
-        # Update balance
-        balance = self.executor.get_balance()
+        # Update balance — use total for position sizing (includes unrealized PnL)
+        balance = self.executor.get_total_balance()
         self.risk_manager.update_balance(balance)
 
         # Check each symbol

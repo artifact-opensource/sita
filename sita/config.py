@@ -75,16 +75,13 @@ SUPPORTED_EXCHANGES: Mapping[str, Mapping] = MappingProxyType({
 # ─── Default Watchlist ─────────────────────────────────────────────────────
 
 DEFAULT_WATCHLIST = (
-    "BTC/USDT:USDT",       # BTC futures
-    "ETH/USDT:USDT",       # ETH futures
-    "SOL/USDT:USDT",       # SOL futures
-    "BNB/USDT:USDT",       # BNB futures
-    "XRP/USDT:USDT",       # XRP futures
-    "DOGE/USDT:USDT",      # DOGE futures
-    "ADA/USDT:USDT",       # ADA futures
-    "AVAX/USDT:USDT",      # AVAX futures
-    "DOT/USDT:USDT",       # DOT futures
-    "LINK/USDT:USDT",      # LINK futures
+    "SOL/USDT:USDT",       # SOL futures — $5 min notional
+    "BNB/USDT:USDT",       # BNB futures — $5 min notional
+    "XRP/USDT:USDT",       # XRP futures — $5 min notional
+    "DOGE/USDT:USDT",      # DOGE futures — $5 min notional
+    "ADA/USDT:USDT",       # ADA futures — $5 min notional
+    "AVAX/USDT:USDT",      # AVAX futures — $5 min notional
+    "DOT/USDT:USDT",       # DOT futures — $5 min notional
 )
 
 # ─── Confluence Scoring Weights ────────────────────────────────────────────
@@ -129,7 +126,7 @@ DEFAULT_RISK_LIMITS: Mapping[str, float] = MappingProxyType({
     "max_total_loss_pct": 0.25,
     "max_risk_per_trade_pct": 0.02,
     "max_positions": 10,       # Dynamic: overridden by _get_max_positions()
-    "max_positions_per_symbol": 2,
+    "max_positions_per_symbol": 5,
     "recovery_mode_threshold": 0.15,
     "recovery_mode_risk_mult": 0.75,
     "min_lot": 0.001,
