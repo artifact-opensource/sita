@@ -242,7 +242,7 @@ class ExchangeExecutor:
             if notional < min_notional:
                 min_size = min_notional / order_price
                 current_bal = self.get_balance()
-                max_size = (current_bal * 0.55) / order_price
+                max_size = (current_bal * 0.60) / order_price
                 logger.info(f"Notional check: notional=${notional:.2f}, min=${min_notional}, min_size={min_size:.4f}, max_size={max_size:.4f}, bal={current_bal:.2f}")
                 if min_size <= max_size:
                     logger.info(f"Position size {size} too small (notional ${notional:.2f} < ${min_notional}), scaling up to {min_size:.4f}")

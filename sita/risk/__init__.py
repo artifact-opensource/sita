@@ -233,32 +233,93 @@ class UnifiedRiskManager:
 
         return round(position_size, 6), round(actual_risk, 2)
 
+    def _get_sl_multiplier(self, balance: float) -> float:
+        """Dynamic SL tightness based on account balance.
+        Small accounts get tight stops to avoid liquidation.
+        Larger accounts get wider stops for breathing room.
+        """
+        if balance <= 20:
+            return 0.5   # Very tight — survive on small account
+        elif balance <= 50:
+            return 0.8
+        elif balance <= 100:
+            return 1.0
+        elif balance <= 500:
+            return 1.3
+        elif balance <= 1000:
+            return 1.5
+        else:
+            return 2.0   # Wide stops for large accounts
+
+    def _get_tp_risk_reward(self, balance: float) -> float:
+        """Dynamic TP risk-reward based on account balance.
+        Small accounts take quick small profits.
+        Larger accounts let winners run.
+        """
+        if balance <= 20:
+            return 0.5   # Quick $0.10-$0.50 profits
+        elif balance <= 50:
+            return 0.8
+        elif balance <= 100:
+            return 1.0
+        elif balance <= 500:
+            return 1.5
+        elif balance <= 1000:
+            return 2.0
+        else:
+            return 3.0   # Let winners run big
+
+    def _get_max_positions(self, balance: float) -> int:
+        """Dynamic max positions based on account balance.
+        Small accounts run many concurrent small trades.
+        """
+        if balance <= 20:
+            return 10
+        elif balance <= 50:
+            return 7
+        elif balance <= 100:
+            return 5
+        elif balance <= 500:
+            return 4
+        else:
+            return 3
+
     def calculate_stop_loss(
         self,
         direction: str,
         entry_price: float,
         atr: float,
-        multiplier: float = 1.5,
+        balance: float = 0.0,
+        multiplier: float = 0.0,
     ) -> float:
-        """ATR-based stop loss."""
-        if direction == "long":
-            return round(entry_price - (atr * multiplier), 8)
+        """ATR-based stop loss with dynamic tightness."""
+        if multiplier > 0:
+            m = multiplier
         else:
-            return round(entry_price + (atr * multiplier), 8)
+            m = self._get_sl_multiplier(balance)
+        if direction == "long":
+            return round(entry_price - (atr * m), 8)
+        else:
+            return round(entry_price + (atr * m), 8)
 
     def calculate_take_profit(
         self,
         direction: str,
         entry_price: float,
         stop_loss_price: float,
-        risk_reward: float = 2.0,
+        balance: float = 0.0,
+        risk_reward: float = 0.0,
     ) -> float:
-        """Risk:reward based take profit."""
+        """Risk:reward based take profit with dynamic scaling."""
+        if risk_reward > 0:
+            rr = risk_reward
+        else:
+            rr = self._get_tp_risk_reward(balance)
         risk = abs(entry_price - stop_loss_price)
         if direction == "long":
-            return round(entry_price + (risk * risk_reward), 8)
+            return round(entry_price + (risk * rr), 8)
         else:
-            return round(entry_price - (risk * risk_reward), 8)
+            return round(entry_price - (risk * rr), 8)
 
     def approve_trade(
         self,
@@ -284,9 +345,10 @@ class UnifiedRiskManager:
         if self.state.total_limit_hit:
             return RiskDecision(RiskAction.LOCKED, 0, 0, 0, 0, reasons=["Total loss limit hit"])
 
-        # Check position limits
-        if self.state.open_positions >= self.limits.max_positions:
-            return RiskDecision(RiskAction.REJECTED, 0, 0, 0, 0, reasons=[f"Max positions ({self.limits.max_positions}) reached"])
+        # Check position limits — dynamic based on balance
+        dynamic_max = self._get_max_positions(balance)
+        if self.state.open_positions >= dynamic_max:
+            return RiskDecision(RiskAction.REJECTED, 0, 0, 0, 0, reasons=[f"Max positions ({dynamic_max}) reached"])
 
         symbol_count = self.state.positions_by_symbol.get(symbol, 0)
         if symbol_count >= self.limits.max_positions_per_symbol:

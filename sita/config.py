@@ -128,7 +128,7 @@ DEFAULT_RISK_LIMITS: Mapping[str, float] = MappingProxyType({
     "max_weekly_loss_pct": 0.15,
     "max_total_loss_pct": 0.25,
     "max_risk_per_trade_pct": 0.02,
-    "max_positions": 3,
+    "max_positions": 10,       # Dynamic: overridden by _get_max_positions()
     "max_positions_per_symbol": 2,
     "recovery_mode_threshold": 0.15,
     "recovery_mode_risk_mult": 0.75,

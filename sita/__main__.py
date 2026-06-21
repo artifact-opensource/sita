@@ -280,10 +280,10 @@ class SITA:
 
         # ─── 3. Risk check ──────────────────────────────────────────────
         sl_price = self.risk_manager.calculate_stop_loss(
-            signal.direction.value, current_price, atr
+            signal.direction.value, current_price, atr, balance=balance
         )
         tp_price = self.risk_manager.calculate_take_profit(
-            signal.direction.value, current_price, sl_price
+            signal.direction.value, current_price, sl_price, balance=balance
         )
 
         risk_decision = self.risk_manager.approve_trade(
@@ -300,7 +300,10 @@ class SITA:
             logger.info(f"{symbol}: Risk rejected — {risk_decision.reasons}")
             return
 
-        logger.info(f"{symbol}: Risk approved — size={risk_decision.position_size}, SL={sl_price}, TP={tp_price}")
+        sl_mult = self.risk_manager._get_sl_multiplier(balance)
+        tp_rr = self.risk_manager._get_tp_risk_reward(balance)
+        max_pos = self.risk_manager._get_max_positions(balance)
+        logger.info(f"{symbol}: Risk approved — size={risk_decision.position_size}, SL={sl_price} (x{sl_mult}), TP={tp_price} (rr={tp_rr}), max_pos={max_pos}")
 
         # ─── 4. Execute ─────────────────────────────────────────────────
         order = self.executor.place_order(
