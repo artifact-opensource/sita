@@ -61,7 +61,12 @@ class BasisOpportunity:
     @property
     def is_favorable(self) -> bool:
         """Is the basis trade worth it after costs?"""
-        # Need funding > min_funding_rate per 8h to cover trading fees
+        # Pure funding play: positive funding rate earns yield even with 0% basis
+        # 0.00001 = 0.001% per 8h ≈ 0.11% APY (3 payments/day * 365)
+        # Any positive funding is profitable after fees (0.2% round-trip)
+        if self.funding_rate > 0.00001 and self.confidence > 0.1:
+            return True
+        # Basis + funding play: both must be meaningful
         return self.funding_rate > 0.00005 and self.confidence > 0.5
 
 
@@ -141,7 +146,10 @@ class ArbitrageEngine:
             basis_pct = (futures_price - spot_price) / spot_price * 100
 
             # Confidence based on data freshness and spread
-            confidence = min(abs(basis_pct) / self.min_basis_pct, 1.0) if abs(basis_pct) > 0.01 else 0.0
+            # Also factor in funding rate magnitude
+            basis_conf = min(abs(basis_pct) / self.min_basis_pct, 1.0) if abs(basis_pct) > 0.01 else 0.0
+            funding_conf = min(funding.apy / 0.10, 1.0) if funding and funding.apy > 0 else 0.0
+            confidence = max(basis_conf, funding_conf)
 
             opp = BasisOpportunity(
                 symbol=symbol,
@@ -169,16 +177,7 @@ class ArbitrageEngine:
     def _fetch_funding_rate(self, exchange, symbol: str) -> Optional[FundingRate]:
         """Fetch current funding rate for a perpetual contract."""
         try:
-            # Binance funding rate endpoint
-            if hasattr(exchange, 'fapiPublicGetFundingRate'):
-                data = exchange.fapiPublicGetFundingRate({'symbol': symbol.replace('/', '')})
-                if data:
-                    return FundingRate(
-                        symbol=symbol,
-                        rate=float(data.get('lastFundingRate', 0)),
-                        next_funding=int(data.get('nextFundingTime', 0)),
-                    )
-            # Generic ccxt fallback
+            # Generic ccxt method (works reliably for Binance)
             if hasattr(exchange, 'fetch_funding_rate'):
                 data = exchange.fetch_funding_rate(symbol)
                 return FundingRate(
@@ -187,6 +186,23 @@ class ArbitrageEngine:
                     next_funding=int(data.get('fundingTimestamp', 0)),
                     predicted_rate=float(data.get('fundingRate', 0)),
                 )
+            # Binance raw API fallback — returns a LIST of rate entries, take the latest
+            if hasattr(exchange, 'fapiPublicGetFundingRate'):
+                raw = exchange.fapiPublicGetFundingRate({'symbol': symbol.replace('/', '')})
+                if isinstance(raw, list) and raw:
+                    # List is sorted by fundingTime descending — first entry is latest
+                    data = raw[0]
+                    return FundingRate(
+                        symbol=symbol,
+                        rate=float(data.get('fundingRate', 0)),
+                        next_funding=int(data.get('fundingTime', 0)),
+                    )
+                elif isinstance(raw, dict):
+                    return FundingRate(
+                        symbol=symbol,
+                        rate=float(raw.get('lastFundingRate', 0)),
+                        next_funding=int(raw.get('nextFundingTime', 0)),
+                    )
         except Exception as e:
             logger.debug(f"Funding rate fetch failed: {e}")
         return None
